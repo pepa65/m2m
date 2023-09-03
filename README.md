@@ -8,9 +8,10 @@
   - password: POP3S password
   - tlsservername: Server domainname according to the certificate
   - serveraddress: IP/Domainname address of the server
-  - proxyaddress: Address of the proxy server (empty when not used)
+  - proxyaddress: Address of the proxy server (default: not used)
   - disabletls: `true`/`false` - Disable TLS or not (default)
   - keep: `true`/`false` - Keep messages on the POP3S server or not (default)
+  - maildirpath: Path to the Maildir directory (default: `~/Maildir`)
 
 ## Run
 * By default, `~/.m2m.conf` is used as the configuration file: `m2m`

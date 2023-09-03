@@ -20,12 +20,12 @@ import (
 type Config struct {
 	Username      string
 	Password      string
-	MaildirPath   string
 	TLSServerName string
 	ServerAddress string
 	ProxyAddress  string
-	Keep          bool   `yaml:,omitempty`
-	DisableTLS    bool   `yaml:,omitempty`
+	DisableTLS    bool
+	Keep          bool
+	MaildirPath   string
 }
 
 func main() {
@@ -135,6 +135,10 @@ func main() {
 			msgSize = s[0]
 		}
 		log.Printf("Fetching message %d/%d (%s bytes)", i, nmsg, msgSize)
+		maildir := cfg.MaildirPath
+		if maildir == "" {
+			maildir = filepath.Join(usr.HomeDir, "Maildir")
+		}
 		err = SaveToMaildir(cfg.MaildirPath, data)
 		if err != nil {
 			log.Fatal(err)
