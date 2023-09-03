@@ -92,17 +92,19 @@ func main() {
 
 	popConn := NewPOP3Conn(conn)
 	line, err := popConn.Cmd("USER %s", cfg.Username)
+	log.Printf("USER: \"%s\"\n", line)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	line, err = popConn.Cmd("PASS %s", cfg.Password)
-	log.Printf("\"%s\"\n", line)
+	log.Printf("PASS: \"%s\"\n", line)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	line, err = popConn.Cmd("STAT")
+	log.Printf("STAT: \"%s\"\n", line)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -140,16 +142,20 @@ func main() {
 			log.Fatal(err)
 		}
 
-		if !cfg.Keep {
+		if cfg.Keep {
+			log.Printf("Not deleting the messages from the server")
+		} else {
 			line, err = popConn.Cmd("DELE %d", i)
+			log.Printf("DELE: \"%s\"\n", line)
 			if err != nil {
 				log.Fatal(err)
 			}
+			log.Printf("Deleted the messages from the server")
 		}
 	}
 
 	line, err = popConn.Cmd("QUIT")
-	log.Printf("\"%s\"", line)
+	log.Printf("QUIT: \"%s\"", line)
 	if err != nil {
 		log.Fatal(err)
 	}
