@@ -46,6 +46,7 @@ func main() {
 		log.Fatal(err)
 	}
 
+	log.Printf("Configuration: %s", cfgpath)
 	var cfg Config
 	err = yaml.UnmarshalStrict(cfgdata, &cfg)
 	if err != nil {
