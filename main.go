@@ -1,14 +1,14 @@
-// main.go - Move from POP3 to Maildir
+// main.go - Move from POP3S to Maildir
 
 package main
 
 import (
 	"crypto/tls"
 	"encoding/json"
-	"flag"
 	"io/ioutil"
 	"log"
 	"net"
+	"os/args"
 	"os/user"
 	"path/filepath"
 	"strconv"
@@ -35,9 +35,11 @@ func main() {
 	}
 
 	cfgpath := filepath.Join(usr.HomeDir, ".m2m.conf")
-	flag.Parse()
-	if len(flag.Args()) == 1 {
-		cfgpath = flag.Args()[0]
+	if len(os.Args) > 2 {
+		log.Fatal("Only 1 optional argument: configuration file")
+	}
+	if len(os.Args) == 2 {
+		cfgpath = os.Args[1]
 	}
 	var cfg Config
 	cfgdata, err := ioutil.ReadFile(cfgpath)
@@ -92,19 +94,16 @@ func main() {
 
 	popConn := NewPOP3Conn(conn)
 	line, err := popConn.Cmd("USER %s", cfg.Username)
-	log.Printf("USER: \"%s\"\n", line)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	line, err = popConn.Cmd("PASS %s", cfg.Password)
-	log.Printf("PASS: \"%s\"\n", line)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	line, err = popConn.Cmd("STAT")
-	log.Printf("STAT: \"%s\"\n", line)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -142,20 +141,20 @@ func main() {
 			log.Fatal(err)
 		}
 
-		if cfg.Keep {
-			log.Printf("Not deleting the messages from the server")
-		} else {
-			line, err = popConn.Cmd("DELE %d", i)
-			log.Printf("DELE: \"%s\"\n", line)
-			if err != nil {
-				log.Fatal(err)
-			}
-			log.Printf("Deleted the messages from the server")
+		log.Printf("DELE: \"%s\"\n", line)
+		if err != nil {
+			log.Fatal(err)
 		}
 	}
 
+	if nmsg > 0 {
+		if cfg.Keep {
+			log.Printf("Not deleting the messages from the server")
+		} else {
+			log.Printf("Deleted the messages from the server")
+		}
+	}
 	line, err = popConn.Cmd("QUIT")
-	log.Printf("QUIT: \"%s\"", line)
 	if err != nil {
 		log.Fatal(err)
 	}
