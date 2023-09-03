@@ -9,8 +9,8 @@
   - TLSServerName: the server domainname according to the certificate
   - ServerAddress: the IP/Domainname address of the server
   - ProxyAddress: the address of the proxy server (empty when not used)
-  - DisableTLS: `false`/`true` to prescribe TLS usage
-  - Keep: `false`/`true` whether messages need to be kept on the POP3s server
+  - DisableTLS: `false`/`true` - disable TLS or not (default)
+  - Keep: `false`/`true` keep messages on the POP3s server or not (default)
 
 # Run
 * `m2m`
