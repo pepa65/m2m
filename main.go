@@ -8,7 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net"
-	"os/args"
+	"os"
 	"os/user"
 	"path/filepath"
 	"strconv"
@@ -36,7 +36,7 @@ func main() {
 
 	cfgpath := filepath.Join(usr.HomeDir, ".m2m.conf")
 	if len(os.Args) > 2 {
-		log.Fatal("Only 1 optional argument: configuration file")
+		log.Fatal("Only 1 (optional) argument allowed: configfile")
 	}
 	if len(os.Args) == 2 {
 		cfgpath = os.Args[1]
