@@ -1,9 +1,4 @@
-// pop3.go
-//
-// To the extent possible under law, Ivan Markin waived all copyright
-// and related or neighboring rights to this module of mm, using the creative
-// commons "cc0" public domain dedication. See LICENSE or
-// <http://creativecommons.org/publicdomain/zero/1.0/> for full details.
+// pop3s.go
 
 package main
 
@@ -33,6 +28,7 @@ func ParseResponseLine(input string) (ok bool, msg string, err error) {
 	default:
 		return false, "", fmt.Errorf("Malformed response status: %s", s[0])
 	}
+
 	if len(s) == 2 {
 		msg = s[1]
 	}
@@ -45,19 +41,23 @@ func (pc *POP3Conn) Cmd(format string, args ...interface{}) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	c.StartResponse(id)
 	defer c.EndResponse(id)
 	line, err := c.ReadLine()
 	if err != nil {
 		return "", nil
 	}
+
 	ok, rmsg, err := ParseResponseLine(line)
 	if err != nil {
 		return "", err
 	}
+
 	if !ok {
 		return "", fmt.Errorf("%s", rmsg)
 	}
+
 	return rmsg, nil
 }
 
@@ -67,23 +67,28 @@ func (pc *POP3Conn) CmdMulti(format string, args ...interface{}) (string, []byte
 	if err != nil {
 		return "", nil, err
 	}
+
 	c.StartResponse(id)
 	defer c.EndResponse(id)
 	line, err := c.ReadLine()
 	if err != nil {
 		return "", nil, err
 	}
+
 	ok, rmsg, err := ParseResponseLine(line)
 	if err != nil {
 		return "", nil, err
 	}
+
 	if !ok {
 		return "", nil, fmt.Errorf("%s", rmsg)
 	}
+
 	data, err := c.ReadDotBytes()
 	if err != nil {
 		return "", nil, err
 	}
+
 	return rmsg, data, nil
 }
 
@@ -91,5 +96,4 @@ func NewPOP3Conn(rwc io.ReadWriteCloser) *POP3Conn {
 	pc := &POP3Conn{}
 	pc.conn = textproto.NewConn(rwc)
 	return pc
-
 }
