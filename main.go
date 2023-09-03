@@ -4,7 +4,6 @@ package main
 
 import (
 	"crypto/tls"
-	"encoding/json"
 	"io/ioutil"
 	"log"
 	"net"
@@ -15,6 +14,7 @@ import (
 	"strings"
 
 	"golang.org/x/net/proxy"
+	"gopkg.in/yaml.v2"
 )
 
 type Config struct {
@@ -24,8 +24,8 @@ type Config struct {
 	TLSServerName string
 	ServerAddress string
 	ProxyAddress  string
-	Keep          bool
-	DisableTLS    bool
+	Keep          bool   `yaml:,omitempty`
+	DisableTLS    bool   `yaml:,omitempty`
 }
 
 func main() {
@@ -36,22 +36,21 @@ func main() {
 
 	cfgpath := filepath.Join(usr.HomeDir, ".m2m.conf")
 	if len(os.Args) > 2 {
-		log.Fatal("Only 1 (optional) argument allowed: configfile")
+		log.Fatalf("Only 1 (optional) argument allowed: configfile")
 	}
 	if len(os.Args) == 2 {
 		cfgpath = os.Args[1]
 	}
-	var cfg Config
 	cfgdata, err := ioutil.ReadFile(cfgpath)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = json.Unmarshal(cfgdata, &cfg)
+	var cfg Config
+	err = yaml.UnmarshalStrict(cfgdata, &cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	var dialer Dialer
 	dialer = &net.Dialer{}
 	if cfg.ProxyAddress != "" {
@@ -141,9 +140,11 @@ func main() {
 			log.Fatal(err)
 		}
 
-		log.Printf("DELE: \"%s\"\n", line)
-		if err != nil {
-			log.Fatal(err)
+		if !cfg.Keep {
+			line, err = popConn.Cmd("DELE %d", i)
+			if err != nil {
+				log.Fatal(err)
+			}
 		}
 	}
 
