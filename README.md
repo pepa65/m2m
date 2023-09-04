@@ -1,11 +1,10 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/pepa65/m2m)](https://goreportcard.com/report/github.com/pepa65/m2m)
 [![GoDoc](https://godoc.org/github.com/pepa65/m2m?status.svg)](https://godoc.org/github.com/pepa65/m2m)
 [![GitHub](https://img.shields.io/github/license/pepa65/m2m.svg)](LICENSE)
-[![run-ci](https://github.com/pepa65/m2m/actions/workflows/ci.yml/badge.svg)](https://github.com/pepa65/m2m/actions/workflows/ci
-.yml)
+[![run-ci](https://github.com/pepa65/m2m/actions/workflows/ci.yml/badge.svg)](https://github.com/pepa65/m2m/actions/workflows/ci.yml)
 # m2m - Move from POP3S to Maildir
 
-* v1.0.2
+* v1.0.3
 * Just pull mails from POP3S servers (TLS can be disabled) and put them in
   local Maildirs. Proxies can be used, onion can be used.
 * RFC6856 compliant (UTF8 before RETR) so works with Courier as well.
