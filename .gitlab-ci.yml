@@ -1,0 +1,24 @@
+image: golang:latest
+
+stages:
+  - build
+
+building:
+  stage: build
+  script:
+    - go get -u github.com/pepa65/m2m
+    - GOOS=linux GOARCH=amd64 go build -ldflags="-s -w"
+    - strip m2m
+    - GOOS=linux GOARCH=arm go build -ldflags="-s -w" -o m2m_pi
+    - GOOS=freebsd GOARCH=amd64 go build -ldflags="-s -w" -o m2m_freebsd
+    - GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -o m2m_osx
+    - GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o m2m.exe
+  artifacts:
+    name: m2m
+    paths:
+     - m2m
+     - m2m_pi
+     - m2m_freebsd
+     - m2m_osx
+     - m2m.exe
+

@@ -1,11 +1,17 @@
 # m2m - Move from POP3S to Maildir
 
+* v1.0.0
+* Just pull mails from POP3S servers (TLS can be disabled) and put them in
+  local Maildirs. Proxies can be used, onion can be used.
+* RFC6856 compliant (UTF8 before RETR) so works with Courier as well.
+* Based on github.com/unkaktus/mm
+
 ## Install
 * `go install github.com/pepa65/m2m@latest`
 * An example config file is `.m2m.conf`. If it is put in `~/` it is used as
   the sole "Default" account to be used. Alternatively, `~/.m2m.conf` can be
   a directory with account config files (whose filename is taken to be the
-  'account name') which are all used when run.
+  'account name') which are all used when run in lexical order.
 * The config files have the POP3S server config details and the Maildir location:
   - `username`: POP3S username
   - `password`: POP3S password
@@ -18,6 +24,6 @@
 
 ## Run
 * Usage: `m2m [ -v|--verbose | -q|--quiet ]`
-* `-v`/`--verbose` gives more detailed output.
-* `-q`/`--quiet` only outputs on fatal errors.
+* Flag `-v`/`--verbose` gives more detailed output.
+* Flag `-q`/`--quiet` only outputs on fatal errors.
 * All output is on `stderr`.
