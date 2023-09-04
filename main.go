@@ -73,7 +73,13 @@ func main() {
 		nmsg += n
 	}
 	if verbose == 1 && nmsg > 0 {
-		log.Printf("%s(%.03f) ", logline, time.Since(start)/1e9)
+		end := time.Now()
+		since, s := string(time.Since(start)/1000000), "0"
+		if len(since) > 3 {
+			s = since[0:len(since)-3]
+		}
+		ms := since[len(since)-3:]
+		fmt.Fprintf(os.Stderr, "%s %s(%s.%ss) ", end.Format("2006-01-02_03:04:05"), logline, s, ms)
 	}
 }
 
