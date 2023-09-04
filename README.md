@@ -1,6 +1,6 @@
 # m2m - Move from POP3S to Maildir
 
-* v1.0.0
+* v1.0.1
 * Just pull mails from POP3S servers (TLS can be disabled) and put them in
   local Maildirs. Proxies can be used, onion can be used.
 * RFC6856 compliant (UTF8 before RETR) so works with Courier as well.
