@@ -125,6 +125,8 @@ func main() {
 
 	log.Printf("There are %d messages of total size %d bytes", nmsg, boxsize)
 	for i := 1; i <= nmsg; i++ {
+		line, _ = popConn.Cmd("UTF8")
+log.Printf("UTF8 reply: %s", line)
 		line, data, err := popConn.CmdMulti("RETR %d", i)
 		if err != nil {
 			log.Fatal(err)
