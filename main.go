@@ -73,7 +73,7 @@ func main() {
 		nmsg += n
 	}
 	if verbose == 1 && nmsg > 0 {
-		log.Printf("%s (%d.3) ", logline, time.Since(start)/1e9)
+		log.Printf("%s(%.03f) ", logline, time.Since(start)/1e9)
 	}
 }
 
