@@ -63,7 +63,7 @@ func main() {
 			log.Fatal(err)
 		}
 		for _, file := range files {
-			res, n := check(file.Name(), file.Name(), home, verbose)
+			res, n := check(file.Name(), filepath.Join(cfgpath, file.Name()), home, verbose)
 			logline += res
 			nmsg += n
 		}
@@ -78,7 +78,7 @@ func main() {
 }
 
 func check(account string, filename string, home string, verbose int) (string, int) {
-log.Print("FILE: %s", filename)
+log.Printf("FILE: %s", filename)
 	var logline string
 	if verbose == 2 {
 		log.Printf("Account: %s", account)
