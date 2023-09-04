@@ -73,12 +73,11 @@ func main() {
 		nmsg += n
 	}
 	if verbose == 1 && nmsg > 0 {
-		log.Print("%s (%d.3) ", logline, time.Since(start)/1e9)
+		log.Printf("%s (%d.3) ", logline, time.Since(start)/1e9)
 	}
 }
 
 func check(account string, filename string, home string, verbose int) (string, int) {
-log.Printf("FILE: %s", filename)
 	var logline string
 	if verbose == 2 {
 		log.Printf("Account: %s", account)
