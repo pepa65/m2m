@@ -78,6 +78,7 @@ func main() {
 }
 
 func check(account string, filename string, home string, verbose int) (string, int) {
+log.Print("FILE: %s", filename)
 	var logline string
 	if verbose == 2 {
 		log.Printf("Account: %s", account)
