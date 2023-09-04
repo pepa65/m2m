@@ -4,6 +4,7 @@ package main
 
 import (
 	"crypto/tls"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net"
@@ -12,6 +13,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"golang.org/x/net/proxy"
 	"gopkg.in/yaml.v2"
@@ -30,23 +32,59 @@ type Config struct {
 
 func main() {
 	usr, err := user.Current()
+	home := usr.HomeDir
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	cfgpath := filepath.Join(usr.HomeDir, ".m2m.conf")
+	cfgpath := filepath.Join(home, ".m2m.conf")
 	if len(os.Args) > 2 {
-		log.Fatalf("Only 1 (optional) argument allowed: configfile")
+		log.Fatalf("Only 1 (optional) argument allowed: -v/--verbose / -q/--quiet")
 	}
+	verbose := 1
 	if len(os.Args) == 2 {
-		cfgpath = os.Args[1]
+		if os.Args[1] == "-v" || os.Args[1] == "--verbose" {
+			verbose = 2
+		} else if os.Args[1] == "-q" || os.Args[1] == "--quiet" {
+			verbose = 0
+		} else {
+			log.Fatalf("Only arguments allowed: -v/--verbose / -q/--quiet")
+		}
 	}
-	cfgdata, err := ioutil.ReadFile(cfgpath)
+	cfgdata, err := os.Stat(cfgpath)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	log.Printf("Configuration: %s", cfgpath)
+	start, logline, nmsg := time.Now(), "", 0
+	if cfgdata.IsDir() {
+		filepath.Walk(cfgpath, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				log.Fatal(err)
+			}
+			res, n := check(info.Name(), info.Name(), home, verbose)
+			logline += res
+			nmsg += n
+			return nil
+		})
+	} else {
+		res, n := check("Default", cfgpath, home, verbose)
+		logline += res
+		nmsg += n
+	}
+	if verbose == 1 && nmsg > 0 {
+		log.Print("%s (%d.3) ", logline, time.Since(start)/1e9)
+	}
+}
+
+func check(account string, filename string, home string, verbose int) (string, int) {
+	var logline string
+	if verbose == 2 {
+		log.Printf("Account: %s", account)
+	} else if verbose > 0 {
+		logline += account+": "
+	}
+	cfgdata, err := ioutil.ReadFile(filename)
 	var cfg Config
 	err = yaml.UnmarshalStrict(cfgdata, &cfg)
 	if err != nil {
@@ -123,10 +161,13 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Printf("There are %d messages of total size %d bytes", nmsg, boxsize)
+	if verbose == 2 {
+		log.Printf("There are %d messages of total size %d bytes", nmsg, boxsize)
+	} else if verbose > 0 {
+		logline += fmt.Sprintf("%d ", nmsg)
+	}
 	for i := 1; i <= nmsg; i++ {
 		line, _ = popConn.Cmd("UTF8")
-log.Printf("UTF8 reply: %s", line)
 		line, data, err := popConn.CmdMulti("RETR %d", i)
 		if err != nil {
 			log.Fatal(err)
@@ -137,10 +178,12 @@ log.Printf("UTF8 reply: %s", line)
 		if _, err := strconv.Atoi(s[0]); err == nil {
 			msgSize = s[0]
 		}
-		log.Printf("Fetching message %d/%d (%s bytes)", i, nmsg, msgSize)
+		if verbose == 2 {
+			log.Printf("Fetching message %d/%d (%s bytes)", i, nmsg, msgSize)
+		}
 		maildir := cfg.MaildirPath
 		if maildir == "" {
-			maildir = filepath.Join(usr.HomeDir, "Maildir")
+			maildir = filepath.Join(home, "Maildir")
 		}
 		err = SaveToMaildir(cfg.MaildirPath, data)
 		if err != nil {
@@ -155,7 +198,7 @@ log.Printf("UTF8 reply: %s", line)
 		}
 	}
 
-	if nmsg > 0 {
+	if verbose == 2 && nmsg > 0 {
 		if cfg.Keep {
 			log.Printf("Not deleting the messages from the server")
 		} else {
@@ -168,4 +211,5 @@ log.Printf("UTF8 reply: %s", line)
 	}
 
 	conn.Close()
+	return logline, nmsg
 }
