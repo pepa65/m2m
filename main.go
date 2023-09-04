@@ -58,15 +58,15 @@ func main() {
 
 	start, logline, nmsg := time.Now(), "", 0
 	if cfgdata.IsDir() {
-		filepath.Walk(cfgpath, func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				log.Fatal(err)
-			}
-			res, n := check(info.Name(), info.Name(), home, verbose)
+		files, err := ioutil.ReadDir(cfgpath)
+		if err != nil {
+			log.Fatal(err)
+		}
+		for _, file := range files {
+			res, n := check(file.Name(), file.Name(), home, verbose)
 			logline += res
 			nmsg += n
-			return nil
-		})
+		}
 	} else {
 		res, n := check("Default", cfgpath, home, verbose)
 		logline += res
