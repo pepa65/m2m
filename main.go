@@ -140,7 +140,8 @@ func check(account string, filename string, home string, verbose int) (string, i
 	}
 
 	popConn := NewPOP3Conn(conn)
-	line, err := popConn.Cmd("USER %s", cfg.Username)
+	line, _ := popConn.Cmd("UTF8")  // Ignore server error
+	line, err = popConn.Cmd("USER %s", cfg.Username)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -150,7 +151,6 @@ func check(account string, filename string, home string, verbose int) (string, i
 		log.Fatal(err)
 	}
 
-	line, _ = popConn.Cmd("UTF8")
 	line, err = popConn.Cmd("STAT")
 	if err != nil {
 		log.Fatal(err)
