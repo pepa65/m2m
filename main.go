@@ -144,6 +144,7 @@ func check(account string, filename string, home string, verbose int) (string, i
 		log.Fatal(err)
 	}
 
+	line, _ = popConn.Cmd("UTF8")
 	line, err = popConn.Cmd("STAT")
 	if err != nil {
 		log.Fatal(err)
@@ -170,7 +171,6 @@ func check(account string, filename string, home string, verbose int) (string, i
 		logline += fmt.Sprintf("%d ", nmsg)
 	}
 	for i := 1; i <= nmsg; i++ {
-		line, _ = popConn.Cmd("UTF8")
 		line, data, err := popConn.CmdMulti("RETR %d", i)
 		if err != nil {
 			log.Fatal(err)
