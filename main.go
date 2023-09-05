@@ -96,6 +96,7 @@ func check(account string, filename string, home string, verbose int) (string, i
 	cfg.TLS = true
 	err = yaml.UnmarshalStrict(cfgdata, &cfg)
 	if err != nil {
+		log.Printf("Error in config file '%s'", filename)
 		log.Fatal(err)
 	}
 
