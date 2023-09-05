@@ -41,6 +41,7 @@ func main() {
 	if len(os.Args) > 2 {
 		log.Fatalf("Only 1 (optional) argument allowed: -v/--verbose / -q/--quiet")
 	}
+
 	verbose := 1
 	if len(os.Args) == 2 {
 		if os.Args[1] == "-v" || os.Args[1] == "--verbose" {
@@ -62,6 +63,7 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
+
 		for _, file := range files {
 			res, n := check(file.Name(), filepath.Join(cfgpath, file.Name()), home, verbose)
 			logline += res
@@ -93,10 +95,10 @@ func check(account string, filename string, home string, verbose int) (string, i
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	var dialer Dialer
 	dialer = &net.Dialer{}
 	if cfg.ProxyAddress != "" {
-		var err error
 		dialer, err = proxy.SOCKS5("tcp", cfg.ProxyAddress, nil, proxy.Direct)
 		if err != nil {
 			log.Fatal(err)
@@ -115,6 +117,7 @@ func check(account string, filename string, home string, verbose int) (string, i
 		if err != nil {
 			log.Fatal(err)
 		}
+
 		conn = tlsConn
 	}
 
@@ -130,7 +133,7 @@ func check(account string, filename string, home string, verbose int) (string, i
 	}
 
 	if !ok {
-		log.Fatalf("Server returned error: %s", msg)
+		log.Fatalf("Server error: %s", msg)
 	}
 
 	popConn := NewPOP3Conn(conn)
@@ -152,7 +155,7 @@ func check(account string, filename string, home string, verbose int) (string, i
 
 	s := strings.Split(line, " ")
 	if len(s) != 2 {
-		log.Fatalf("Malformed STAT response: %s", line)
+		log.Fatalf("STAT malformed: %s", line)
 	}
 
 	nmsg, err := strconv.Atoi(s[0])
@@ -166,7 +169,7 @@ func check(account string, filename string, home string, verbose int) (string, i
 	}
 
 	if verbose == 2 {
-		log.Printf("There are %d messages of total size %d bytes", nmsg, boxsize)
+		log.Printf("Found %d messages of total size %d bytes", nmsg, boxsize)
 	} else if verbose > 0 {
 		logline += fmt.Sprintf("%d ", nmsg)
 	}
@@ -203,9 +206,9 @@ func check(account string, filename string, home string, verbose int) (string, i
 
 	if verbose == 2 && nmsg > 0 {
 		if cfg.Keep {
-			log.Printf("Not deleting the messages from the server")
+			log.Printf("Not deleting messages from the server")
 		} else {
-			log.Printf("Deleted the messages from the server")
+			log.Printf("Deleted all messages from the server")
 		}
 	}
 	line, err = popConn.Cmd("QUIT")

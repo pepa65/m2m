@@ -1,4 +1,4 @@
-// pop3s.go
+// pop3.go
 
 package main
 
@@ -26,7 +26,7 @@ func ParseResponseLine(input string) (ok bool, msg string, err error) {
 	case "-ERR":
 		ok = false
 	default:
-		return false, "", fmt.Errorf("Malformed response status: %s", s[0])
+		return false, "", fmt.Errorf("Status malformed: '%s'", input)
 	}
 
 	if len(s) == 2 {
