@@ -25,7 +25,7 @@ type Config struct {
 	TLSServerName string
 	ServerAddress string
 	ProxyAddress  string
-	DisableTLS    bool
+	TLS           bool
 	Keep          bool
 	MaildirPath   string
 }
@@ -88,6 +88,7 @@ func check(account string, filename string, home string, verbose int) (string, i
 	}
 	cfgdata, err := ioutil.ReadFile(filename)
 	var cfg Config
+	cfg.TLS = true  // Default value
 	err = yaml.UnmarshalStrict(cfgdata, &cfg)
 	if err != nil {
 		log.Fatal(err)
@@ -108,7 +109,7 @@ func check(account string, filename string, home string, verbose int) (string, i
 		log.Fatal(err)
 	}
 
-	if !cfg.DisableTLS {
+	if cfg.TLS {
 		tlsConfig := &tls.Config{ServerName: cfg.TLSServerName}
 		tlsConn := tls.Client(conn, tlsConfig)
 		if err != nil {
