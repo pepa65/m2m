@@ -3,7 +3,7 @@
 [![GitHub](https://img.shields.io/github/license/pepa65/m2m.svg)](LICENSE)
 # m2m - Move from POP3S to Maildir
 
-* v1.1.2
+* v1.2.0
 * Just pull mails from POP3S servers (TLS can be disabled) and put them in
   local Maildirs. Proxies can be used, onion can be used.
 * RFC6856 compliant (UTF8 before RETR) so works with Courier as well.
