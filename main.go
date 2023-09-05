@@ -20,14 +20,15 @@ import (
 )
 
 type Config struct {
-	Username      string
-	Password      string
-	TLSServerName string
-	ServerAddress string
-	ProxyAddress  string
-	TLS           bool
-	Keep          bool
-	MaildirPath   string
+	Username         string
+	Password         string
+	TLSDomain        string
+	Server           string
+	Port             string
+	ProxyAddressPort string
+	TLS              bool
+	Keep             bool
+	MaildirPath      string
 }
 
 func main() {
@@ -90,7 +91,9 @@ func check(account string, filename string, home string, verbose int) (string, i
 	}
 	cfgdata, err := ioutil.ReadFile(filename)
 	var cfg Config
-	cfg.TLS = true  // Default value
+	// Default values
+	cfg.Port = "995"
+	cfg.TLS = true
 	err = yaml.UnmarshalStrict(cfgdata, &cfg)
 	if err != nil {
 		log.Fatal(err)
@@ -98,21 +101,21 @@ func check(account string, filename string, home string, verbose int) (string, i
 
 	var dialer Dialer
 	dialer = &net.Dialer{}
-	if cfg.ProxyAddress != "" {
-		dialer, err = proxy.SOCKS5("tcp", cfg.ProxyAddress, nil, proxy.Direct)
+	if cfg.ProxyAddressPort != "" {
+		dialer, err = proxy.SOCKS5("tcp", cfg.ProxyAddressPort, nil, proxy.Direct)
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
 
 	var conn net.Conn
-	conn, err = dialer.Dial("tcp", cfg.ServerAddress)
+	conn, err = dialer.Dial("tcp", cfg.Server+":"+cfg.Port)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	if cfg.TLS {
-		tlsConfig := &tls.Config{ServerName: cfg.TLSServerName}
+		tlsConfig := &tls.Config{ServerName: cfg.TLSDomain}
 		tlsConn := tls.Client(conn, tlsConfig)
 		if err != nil {
 			log.Fatal(err)
