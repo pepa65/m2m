@@ -26,9 +26,5 @@ func SaveToMaildir(mdpath string, msg []byte) error {
 
 	newFile := filepath.Join(mdpath, "new", unique)
 	err = os.Rename(tmpFile, newFile)
-	if err != nil {
-		return nil
-	}
-
-	return nil
+	return err
 }

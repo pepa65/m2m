@@ -1,4 +1,4 @@
-// main.go - Move from POP3S to Maildir
+// main.go - Move from POP3 to Maildir
 
 package main
 
@@ -9,7 +9,6 @@ import (
 	"log"
 	"net"
 	"os"
-	"os/user"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -31,58 +30,91 @@ type Config struct {
 	MaildirPath      string
 }
 
-func main() {
-	usr, err := user.Current()
-	home := usr.HomeDir
+const version = "1.4.0"
+
+var (
+	self = ""
+	home = ""
+)
+
+func usage(msg string) { // I:self,version
+	fmt.Fprint(os.Stderr, self+" v"+version+` - Move from POP3 to Maildir
+* Downloading emails from POP3 servers and moving them into Maildir folders.
+* Repo:   github.com/pepa65/m2m
+* Usage:  m2m [ -v|--verbose | -q|--quiet | -h|--help ]
+    No flags:      Output a minimal report (no output on no mails)
+    -v/--verbose:  Output a more detailed log of actions
+    -q/--quiet:    Output only fatal errors.
+    -h/--help:     Output this help text
+* The directory '~/.m2m.conf' contains all the account config files, which
+  are checked in lexical order. Yhe filename is the account name.
+* Parameters in the configuration files:
+    username:          POP3 username
+    password:          POP3 password
+    tlsdomain:         Server domainname according to the certificate
+    server:            IP/Domainname of the server
+    port:              Port (default: 995)
+    proxyaddressport:  Proxy server IP/Domainname:Port (default: not used)
+    tls: true/false    Use TLS (default), or not
+    keep: true/false   Keep mails on POP3 server, or delete them (default)
+    maildirpath:       Path to the Maildir directory (default: '~/Maildir')
+`)
+
+	if msg != "" {
+		fmt.Fprintf(os.Stderr, "\n%v\n", msg)
+		os.Exit(1)
+	}
+	os.Exit(0)
+}
+
+func main() { // IO:self
+	selfparts := strings.Split(os.Args[0], "/")
+	self = selfparts[len(selfparts)-1]
+	if len(os.Args) > 2 {
+		usage("Only 1 (optional) argument allowed: -v/--verbose / -q/--quiet / -h/--help")
+	}
+
+	verbose := 1
+	if len(os.Args) == 2 {
+		if os.Args[1] == "-h" || os.Args[1] == "--help" {
+			usage("")
+		} else if os.Args[1] == "-v" || os.Args[1] == "--verbose" {
+			verbose = 2
+		} else if os.Args[1] == "-q" || os.Args[1] == "--quiet" {
+			verbose = 0
+		} else {
+			usage("The only argument allowed is: -v/--verbose / -q/--quiet / -h/--help")
+		}
+	}
+
+	var err error
+	home, err = os.UserHomeDir()
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	cfgpath := filepath.Join(home, ".m2m.conf")
-	if len(os.Args) > 2 {
-		log.Fatalf("Only 1 (optional) argument allowed: -v/--verbose / -q/--quiet")
-	}
-
-	verbose := 1
-	if len(os.Args) == 2 {
-		if os.Args[1] == "-v" || os.Args[1] == "--verbose" {
-			verbose = 2
-		} else if os.Args[1] == "-q" || os.Args[1] == "--quiet" {
-			verbose = 0
-		} else {
-			log.Fatalf("Only arguments allowed: -v/--verbose / -q/--quiet")
-		}
-	}
-	cfgdata, err := os.Stat(cfgpath)
+	files, err := ioutil.ReadDir(cfgpath)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	start, logline, nmsg := time.Now(), "", 0
-	if cfgdata.IsDir() {
-		files, err := ioutil.ReadDir(cfgpath)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		for _, file := range files {
-			res, n := check(file.Name(), filepath.Join(cfgpath, file.Name()), home, verbose)
-			logline += res
-			nmsg += n
-		}
-	} else {
-		res, n := check("Default", cfgpath, home, verbose)
+	start := time.Now()
+	logline := ""
+	nmsg := 0
+	for _, file := range files {
+		res, n := check(file.Name(), filepath.Join(cfgpath, file.Name()), verbose)
 		logline += res
 		nmsg += n
 	}
 	if verbose == 1 && nmsg > 0 {
-		s := time.Since(start).Seconds()
+		duration := time.Since(start).Seconds()
 		now := time.Now().Format("2006-01-02_15:04:05")
-		fmt.Fprintf(os.Stderr, "%s %s(%.3fs) ", now, logline, s)
+		fmt.Fprintf(os.Stderr, "%s %s(%.3fs) ", now, logline, duration)
 	}
 }
 
-func check(account string, filename string, home string, verbose int) (string, int) {
+func check(account string, filename string, verbose int) (string, int) {
 	var logline string
 	if verbose == 2 {
 		log.Printf("Account: %s", account)
