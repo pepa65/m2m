@@ -18,7 +18,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const version = "1.4.1"
+const version = "1.5.1"
 
 type Config struct {
 	Username  string
@@ -100,7 +100,6 @@ func main() { // IO:self
 		log.Fatal(err)
 	}
 
-	nmsg := 0
 	start := time.Now()
 	for _, file := range files {
 		result := check(file.Name(), filepath.Join(cfgpath, file.Name()), verbose)
@@ -109,7 +108,7 @@ func main() { // IO:self
 		}
 	}
 	duration := time.Since(start).Seconds()
-	if verbose == 1 && nmsg > 0 {
+	if verbose == 1 && len(accounts) > 0 {
 		logline := time.Now().Format("2006-01-02_15:04:05 ")
 		for account, n := range accounts {
 			logline += account+": "+n+" "
