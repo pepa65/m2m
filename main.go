@@ -107,21 +107,21 @@ func main() { // IO:self
 		logline += res
 		nmsg += n
 	}
+	duration := time.Since(start).Seconds()
 	if verbose == 1 && nmsg > 0 {
-		duration := time.Since(start).Seconds()
 		now := time.Now().Format("2006-01-02_15:04:05")
 		fmt.Fprintf(os.Stderr, "%s %s(%.3fs) ", now, logline, duration)
+	} else if verbose == 2 {
+		log.Printf("Running time: %fs", duration)
 	}
 }
 
 func check(account string, filename string, verbose int) (string, int) {
-	var logline string
-	if verbose == 2 {
-		log.Printf("Account: %s", account)
-	} else if verbose > 0 {
-		logline += account+": "
-	}
 	cfgdata, err := ioutil.ReadFile(filename)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	var cfg Config
 	// Default values
 	cfg.Port = "995"
@@ -203,10 +203,11 @@ func check(account string, filename string, verbose int) (string, int) {
 		log.Fatal(err)
 	}
 
+	var logaccount string
 	if verbose == 2 {
 		log.Printf("Found %d messages of total size %d bytes", nmsg, boxsize)
 	} else if verbose > 0 {
-		logline += fmt.Sprintf("%d ", nmsg)
+		logaccount = fmt.Sprintf("%s: %d ", account, nmsg)
 	}
 	for i := 1; i <= nmsg; i++ {
 		line, data, err := popConn.CmdMulti("RETR %d", i)
@@ -252,5 +253,5 @@ func check(account string, filename string, verbose int) (string, int) {
 	}
 
 	conn.Close()
-	return logline, nmsg
+	return logaccount, nmsg
 }
