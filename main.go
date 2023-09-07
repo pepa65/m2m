@@ -10,6 +10,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -18,7 +19,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const version = "1.7.0"
+const version = "1.7.1"
 
 type Config struct {
 	Username    string
@@ -93,15 +94,22 @@ func main() { // IO:self
 	}
 
 	cfgpath := filepath.Join(home, ".m2m.conf")
-	files, err := ioutil.ReadDir(cfgpath)
+	//files, err := ioutil.ReadDir(cfgpath)
+	dir, err := os.Open(cfgpath)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	files, err := dir.Readdirnames(0)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	mails := false
 	start := time.Now()
+	sort.Strings(files)
 	for _, file := range files {
-		n, errormsg := check(file.Name(), filepath.Join(cfgpath, file.Name()), quiet)
+		n, errormsg := check(file, filepath.Join(cfgpath, file), quiet)
 		if n > 0 {
 			mails = true
 		}
@@ -112,8 +120,8 @@ func main() { // IO:self
 	duration := time.Since(start).Seconds()
 	if !quiet && mails {
 		logline := time.Now().Format("2006-01-02_15:04:05 ")
-		for account, n := range accounts {
-			logline += account+": "+n+" "
+		for _, account := range files {
+			logline += account+": "+accounts[account]+" "
 		}
 		fmt.Printf("%s(%.3fs) ", logline, duration)
 	}
