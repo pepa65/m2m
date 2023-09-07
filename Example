@@ -1,7 +1,7 @@
-username: me@ma.il
+username: my@ma.il
 password: notlongenough
 tlsdomain: pop.up.net
-server: fferfergrgrsehser.onion
+#entryserver: fferfergrgrsehs.onion
 #port: 110
 #proxyport: 127.0.0.1:9050
 #tls: false

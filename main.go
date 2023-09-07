@@ -18,18 +18,18 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const version = "1.5.3"
+const version = "1.6.0"
 
 type Config struct {
-	Username  string
-	Password  string
-	TLSDomain string
-	Server    string
-	Port      string
-	ProxyPort string
-	TLS       bool
-	Keep      bool
-	Maildir   string
+	Username    string
+	Password    string
+	TLSDomain   string
+	Port        string
+	EntryServer string
+	ProxyPort   string
+	TLS         bool
+	Keep        bool
+	Maildir     string
 }
 
 var (
@@ -48,17 +48,17 @@ func usage(msg string) { // I:self,version
     -q/--quiet:    Output only fatal errors.
     -h/--help:     Output this help text
 * The directory '~/.m2m.conf' contains all the account config files, which
-  are checked in lexical order. Yhe filename is the account name.
+  are checked in lexical order. The filename is the account name.
 * Parameters in the configuration files:
     username:         POP3 username
     password:         POP3 password
-    tlsdomain:        Server domainname according to the certificate
-    server:           IP/Domainname of the server
-    port:             Port (default: 995)
-    proxyport:        Proxy server IP/Domainname:Port (default: not used)
-    tls: true/false   Use TLS (default), or not
-    keep: true/false  Keep mails on POP3 server, or delete them (default)
-    maildir:          Path to the Maildir directory (default: '~/Maildir')
+    tlsdomain:        Server domainname (according to its certificate)
+    port:             Port [default: 995]
+    entryserver:      Initial IP/Domainname for the server [default: not used]
+    proxyport:        Proxy server (server:port) [default: not used]
+    tls: true/false   Use TLS [default], or not
+    keep: true/false  Keep mails on POP3 server, or delete them [default]
+    maildir:          Path to the Maildir directory [default: '~/Maildir']
 `)
 
 	if msg != "" {
@@ -134,10 +134,17 @@ func check(account string, filename string, verbose int) (int, string) {
 	cfg.Port = "995"
 	cfg.TLS = true
 	cfg.Maildir = filepath.Join(home, "Maildir")
-
 	err = yaml.UnmarshalStrict(cfgdata, &cfg)
 	if err != nil {
-		return 0, account+" Error in config file '"+filename+"'\n"+err.Error()
+		return 0, account+": Error in config file '"+filename+"'\n"+err.Error()
+	}
+
+	if cfg.Username == "" {
+		return 0, account+": Missing 'username' in configfile '"+filename+"'"
+	}
+
+	if cfg.TLSDomain == "" && cfg.TLS == true {
+		return 0, account+": Missing 'tlsdomain' in configfile '"+filename+"' while TLS required"
 	}
 
 	var dialer Dialer
@@ -150,7 +157,11 @@ func check(account string, filename string, verbose int) (int, string) {
 	}
 
 	var conn net.Conn
-	conn, err = dialer.Dial("tcp", cfg.Server+":"+cfg.Port)
+	if cfg.EntryServer != "" {
+		conn, err = dialer.Dial("tcp", cfg.EntryServer+":"+cfg.Port)
+	} else {
+		conn, err = dialer.Dial("tcp", cfg.TLSDomain+":"+cfg.Port)
+	}
 	if err != nil {
 		return 0, account+": "+err.Error()
 	}
