@@ -18,7 +18,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const version = "1.5.1"
+const version = "1.5.2"
 
 type Config struct {
 	Username  string
@@ -211,7 +211,7 @@ func check(account string, filename string, verbose int) string {
 	if verbose == 2 {
 		log.Printf("%s: Found %d messages of total size %d bytes", account, nmsg, boxsize)
 	} else if verbose == 1 {
-		accounts["account"] = stat[0]
+		accounts[account] = stat[0]
 	}
 	for i := 1; i <= nmsg; i++ {
 		line, data, err := popConn.CmdMulti("RETR %d", i)
