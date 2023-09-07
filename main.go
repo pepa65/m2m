@@ -18,6 +18,8 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+const version = "1.4.1"
+
 type Config struct {
 	Username         string
 	Password         string
@@ -29,8 +31,6 @@ type Config struct {
 	Keep             bool
 	MaildirPath      string
 }
-
-const version = "1.4.0"
 
 var (
 	self = ""
