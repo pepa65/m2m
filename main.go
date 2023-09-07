@@ -19,7 +19,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const version = "1.7.1"
+const version = "1.7.2"
 
 type Config struct {
 	Username    string
@@ -223,6 +223,8 @@ func check(account string, filename string, quiet bool) (int, string) {
 	nmsg, err := strconv.Atoi(stat[0])
 	if err != nil {
 		return 0, account+": "+"Malformed number of messages: "+stat[0]
+	} else {
+		accounts[account] = stat[0]
 	}
 
 	boxsize, err := strconv.Atoi(stat[1])
@@ -232,7 +234,6 @@ func check(account string, filename string, quiet bool) (int, string) {
 
 	if !quiet {
 		log.Printf("%s: Found %d messages of total size %d bytes", account, nmsg, boxsize)
-		accounts[account] = stat[0]
 	}
 	for i := 1; i <= nmsg; i++ {
 		line, data, err := popConn.CmdMulti("RETR %d", i)
