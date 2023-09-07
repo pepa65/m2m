@@ -18,7 +18,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const version = "1.5.2"
+const version = "1.5.3"
 
 type Config struct {
 	Username  string
@@ -100,15 +100,19 @@ func main() { // IO:self
 		log.Fatal(err)
 	}
 
+	mails := false
 	start := time.Now()
 	for _, file := range files {
-		result := check(file.Name(), filepath.Join(cfgpath, file.Name()), verbose)
-		if result != "" {
-			log.Print(result)
+		n, errormsg := check(file.Name(), filepath.Join(cfgpath, file.Name()), verbose)
+		if n > 0 {
+			mails = true
+		}
+		if errormsg != "" {
+			log.Print(errormsg)
 		}
 	}
 	duration := time.Since(start).Seconds()
-	if verbose == 1 && len(accounts) > 0 {
+	if verbose == 1 && mails {
 		logline := time.Now().Format("2006-01-02_15:04:05 ")
 		for account, n := range accounts {
 			logline += account+": "+n+" "
@@ -119,10 +123,10 @@ func main() { // IO:self
 	}
 }
 
-func check(account string, filename string, verbose int) string {
+func check(account string, filename string, verbose int) (int, string) {
 	cfgdata, err := ioutil.ReadFile(filename)
 	if err != nil {
-		return account+": "+err.Error()
+		return 0, account+": "+err.Error()
 	}
 
 	var cfg Config
@@ -133,7 +137,7 @@ func check(account string, filename string, verbose int) string {
 
 	err = yaml.UnmarshalStrict(cfgdata, &cfg)
 	if err != nil {
-		return fmt.Sprintf("%s: Error in config file '%s'\n%s", account, filename, err.Error())
+		return 0, account+" Error in config file '"+filename+"'\n"+err.Error()
 	}
 
 	var dialer Dialer
@@ -141,21 +145,21 @@ func check(account string, filename string, verbose int) string {
 	if cfg.ProxyPort != "" {
 		dialer, err = proxy.SOCKS5("tcp", cfg.ProxyPort, nil, proxy.Direct)
 		if err != nil {
-			return account+": "+err.Error()
+			return 0, account+": "+err.Error()
 		}
 	}
 
 	var conn net.Conn
 	conn, err = dialer.Dial("tcp", cfg.Server+":"+cfg.Port)
 	if err != nil {
-		return account+": "+err.Error()
+		return 0, account+": "+err.Error()
 	}
 
 	if cfg.TLS {
 		tlsConfig := &tls.Config{ServerName: cfg.TLSDomain}
 		tlsConn := tls.Client(conn, tlsConfig)
 		if err != nil {
-			return account+": "+err.Error()
+			return 0, account+": "+err.Error()
 		}
 
 		conn = tlsConn
@@ -164,48 +168,48 @@ func check(account string, filename string, verbose int) string {
 	buf := make([]byte, 255)
 	n, err := conn.Read(buf)
 	if err != nil {
-		return account+": "+err.Error()
+		return 0, account+": "+err.Error()
 	}
 
 	ok, msg, err := ParseResponseLine(string(buf[:n]))
 	if err != nil {
-		return account+": "+err.Error()
+		return 0, account+": "+err.Error()
 	}
 
 	if !ok {
-		return account+": Server error: "+msg
+		return 0, account+": Server error: "+msg
 	}
 
 	popConn := NewPOP3Conn(conn)
 	line, _ := popConn.Cmd("UTF8")  // Ignore any server error
 	line, err = popConn.Cmd("USER %s", cfg.Username)
 	if err != nil {
-		return account+": "+err.Error()
+		return 0, account+": "+err.Error()
 	}
 
 	line, err = popConn.Cmd("PASS %s", cfg.Password)
 	if err != nil {
-		return account+": "+err.Error()
+		return 0, account+": "+err.Error()
 	}
 
 	line, err = popConn.Cmd("STAT")
 	if err != nil {
-		return account+": "+err.Error()
+		return 0, account+": "+err.Error()
 	}
 
 	stat := strings.Split(line, " ")
 	if len(stat) != 2 {
-		return account+": "+"STAT response malformed: "+line
+		return 0, account+": "+"STAT response malformed: "+line
 	}
 
 	nmsg, err := strconv.Atoi(stat[0])
 	if err != nil {
-		return account+": "+"Malformed number of messages: "+stat[0]
+		return 0, account+": "+"Malformed number of messages: "+stat[0]
 	}
 
 	boxsize, err := strconv.Atoi(stat[1])
 	if err != nil {
-		return account+": "+"Malformed mailbox size: "+stat[1]
+		return 0, account+": "+"Malformed mailbox size: "+stat[1]
 	}
 
 	if verbose == 2 {
@@ -261,5 +265,5 @@ func check(account string, filename string, verbose int) string {
 	}
 
 	conn.Close()
-	return ""
+	return nmsg, ""
 }
