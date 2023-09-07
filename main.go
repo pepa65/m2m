@@ -18,7 +18,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const version = "1.6.1"
+const version = "1.7.0"
 
 type Config struct {
 	Username    string
@@ -39,20 +39,20 @@ var (
 )
 
 func usage(msg string) { // I:self,version
-	fmt.Fprint(os.Stderr, self+" v"+version+` - Move from POP3 to Maildir
+	fmt.Print(self+" v"+version+` - Move from POP3 to Maildir
 * Downloading emails from POP3 servers and moving them into Maildir folders.
 * Repo:   github.com/pepa65/m2m
-* Usage:  m2m [ -v|--verbose | -q|--quiet | -h|--help ]
-    No flags:      Output a minimal report (no output on no mails)
-    -v/--verbose:  Output a more detailed log of actions
-    -q/--quiet:    Output only fatal errors.
-    -h/--help:     Output this help text
+* Usage:  m2m [ -h|--help | -q|--quiet ]
+    -h/--help:   Output this help text.
+    -q/--quiet:  Output only on critical errors (on 'stderr').
+    No flag:     A minimal report is sent to 'stdout' (nothing on no mails),
+                 and any additional verbose output is logged to 'stderr'.
 * The directory '~/.m2m.conf' contains all the account config files, which
   are checked in lexical order. The filename is the account name.
 * Parameters in the configuration files:
-    username:         POP3 username
-    password:         POP3 password
-    tlsdomain:        Server domainname (according to its certificate)
+    username:         POP3 username [mandatory]
+    password:         POP3 password [mandatory]
+    tlsdomain:        Server domainname (as in its certificate) [mandatory]
     port:             Port [default: 995]
     entryserver:      Initial IP/Domainname for the server [default: not used]
     proxyport:        Proxy server (server:port) [default: not used]
@@ -72,19 +72,17 @@ func main() { // IO:self
 	selfparts := strings.Split(os.Args[0], "/")
 	self = selfparts[len(selfparts)-1]
 	if len(os.Args) > 2 {
-		usage("Only 1 (optional) argument allowed: -v/--verbose / -q/--quiet / -h/--help")
+		usage("Only 1 (optional) argument allowed: -h/--help / -q/--quiet")
 	}
 
-	verbose := 1
+	quiet := false
 	if len(os.Args) == 2 {
 		if os.Args[1] == "-h" || os.Args[1] == "--help" {
 			usage("")
-		} else if os.Args[1] == "-v" || os.Args[1] == "--verbose" {
-			verbose = 2
 		} else if os.Args[1] == "-q" || os.Args[1] == "--quiet" {
-			verbose = 0
+			quiet = true
 		} else {
-			usage("The only argument allowed is: -v/--verbose / -q/--quiet / -h/--help")
+			usage("The only argument allowed is: -h/--help / -q/--quiet")
 		}
 	}
 
@@ -103,27 +101,28 @@ func main() { // IO:self
 	mails := false
 	start := time.Now()
 	for _, file := range files {
-		n, errormsg := check(file.Name(), filepath.Join(cfgpath, file.Name()), verbose)
+		n, errormsg := check(file.Name(), filepath.Join(cfgpath, file.Name()), quiet)
 		if n > 0 {
 			mails = true
 		}
-		if errormsg != "" && verbose == 2 {
+		if errormsg != "" && !quiet {
 			log.Print(errormsg)
 		}
 	}
 	duration := time.Since(start).Seconds()
-	if verbose == 1 && mails {
+	if !quiet && mails {
 		logline := time.Now().Format("2006-01-02_15:04:05 ")
 		for account, n := range accounts {
 			logline += account+": "+n+" "
 		}
 		fmt.Printf("%s(%.3fs) ", logline, duration)
-	} else if verbose == 2 {
+	}
+	if !quiet {
 		log.Printf("Running time: %fs", duration)
 	}
 }
 
-func check(account string, filename string, verbose int) (int, string) {
+func check(account string, filename string, quiet bool) (int, string) {
 	cfgdata, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return 0, account+": "+err.Error()
@@ -223,9 +222,8 @@ func check(account string, filename string, verbose int) (int, string) {
 		return 0, account+": "+"Malformed mailbox size: "+stat[1]
 	}
 
-	if verbose == 2 {
+	if !quiet {
 		log.Printf("%s: Found %d messages of total size %d bytes", account, nmsg, boxsize)
-	} else if verbose == 1 {
 		accounts[account] = stat[0]
 	}
 	for i := 1; i <= nmsg; i++ {
@@ -236,15 +234,15 @@ func check(account string, filename string, verbose int) (int, string) {
 		}
 
 		size, _, ok := strings.Cut(line, " ")
-		if !ok && verbose == 2 {
+		if !ok && !quiet {
 			log.Printf("%s: RETR response malformed for message %d/%d: %s", account, i, nmsg, line)
 		}
 		_, err = strconv.Atoi(size)
-		if err != nil && verbose == 2 {
+		if err != nil && !quiet {
 			log.Printf("%s: Malformed size for message %d/%d: %s", account, i, nmsg, size)
 			size = "?"
 		}
-		if verbose == 2 {
+		if !quiet {
 			log.Printf("%s: Fetched message %d/%d (%s bytes)", account, i, nmsg, size)
 		}
 		err = SaveToMaildir(cfg.Maildir, data)
@@ -257,24 +255,18 @@ func check(account string, filename string, verbose int) (int, string) {
 			line, err = popConn.Cmd("DELE %d", i)
 			if err != nil {
 				log.Printf("%s: Error deleting mesage %d/%d from server: %s", account, i, nmsg, err.Error())
-			} else if verbose == 2 {
+			} else if !quiet {
 				log.Print(account+": Deleted message %d/%d from server: "+line)
 			}
 		}
 	}
 
-	if verbose == 2 && nmsg > 0 {
+	if !quiet && nmsg > 0 {
 		if cfg.Keep {
 			log.Print(account+": Not deleting messages from the server")
 		}
 	}
-	line, err = popConn.Cmd("QUIT")
-	if err != nil {
-		log.Print(account+": Error quitting from server: "+err.Error())
-	} else if verbose == 2 {
-		log.Print(account+": Quit from server: "+line)
-	}
-
+	popConn.Cmd("QUIT")
 	conn.Close()
 	return nmsg, ""
 }

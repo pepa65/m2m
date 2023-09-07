@@ -3,21 +3,21 @@
 [![GitHub](https://img.shields.io/github/license/pepa65/m2m.svg)](LICENSE)
 # m2m - Move from POP3 to Maildir
 
-* **v1.6.1**
+* **v1.7.0**
 * Just pull mails from POP3 servers (TLS can be disabled) and put them in
   local Maildirs. Proxies and Onion entry servers are supported.
 * RFC6856 compliant (UTF8 before anything) so works with Courier as well.
 * It can keep mails on the server, but does not remember/store which have been seen.
-* Based on github.com/unkaktus/mm
+* Expanded from github.com/unkaktus/mm
 
 ## Install
 * `go install github.com/pepa65/m2m@latest`
 * The directory `~/.m2m.conf` contains all the account config files which are checked in lexical order.
   The file name is the account name. (See the `Example` file in the repo).
 * The config files have the POP3 server config details and the Maildir location:
-  - `username`: POP3 username
-  - `password`: POP3 password
-  - `tlsdomain`: Server domainname (according to its certificate)
+  - `username`: POP3 username [mandatory]
+  - `password`: POP3 password [mandatory]
+  - `tlsdomain`: Server domainname (as in its certificate) [mandatory]
   - `port`: Port [default: 995]
   - `entryserver`: Initial IP/Domainname for the server [default: not used]
   - `proxyport`: Proxy server (`server:port`) [default: empty, not used]
@@ -27,27 +27,28 @@
 * The config files (being YAML files) can have comments (starting with '#').
 
 ## Run
-* Usage: `m2m [ -v|--verbose | -q|--quiet | -h|--help ]`
-* Flag `-v`/`--verbose`: Output a more detailed log of actions to `stderr`.
-* Flag `-q`/`--quiet`: Output only fatal errors to `stderr`.
-* Nno flag: Output a minimal report to `stdout` (nothing on no mails).
+* Usage: `m2m [ -h|--help | -q|--quiet ]`
+* Flag `-h`/`--help` outputs just a help text.
+* Flag `-q`/`--quiet` outputs only fatal errors to `stderr`.
+* Normally, a minimal report is sent to `stdout` (nothing on no mails),
+  and any additional verbose output is logged to `stderr`.
 
 ## Help
 ```
-m2m v1.6.1 - Move from POP3 to Maildir
+m2m v1.7.0 - Move from POP3 to Maildir
 * Downloading emails from POP3 servers and moving them into Maildir folders.
 * Repo:   github.com/pepa65/m2m
-* Usage:  m2m [ -v|--verbose | -q|--quiet | -h|--help ]
-    No flags:      Output a minimal report (no output on no mails)
-    -v/--verbose:  Output a more detailed log of actions
-    -q/--quiet:    Output only fatal errors.
-    -h/--help:     Output this help text
+* Usage:  m2m [ -h|--help | -q|--quiet ]
+    -h/--help:   Output this help text.
+    -q/--quiet:  Output only on critical errors (to 'stderr').
+    No flag:     A minimal report is sent to 'stdout' (nothing on no mails),
+                 and any additional verbose output is logged to 'stderr'.
 * The directory '~/.m2m.conf' contains all the account config files, which
   are checked in lexical order. The filename is the account name.
 * Parameters in the configuration files:
-    username:         POP3 username
-    password:         POP3 password
-    tlsdomain:        Server domainname (according to its certificate)
+    username:         POP3 username [mandatory]
+    password:         POP3 password [mandatory]
+    tlsdomain:        Server domainname (as in its certificate) [mandatory]
     port:             Port [default: 995]
     entryserver:      Initial IP/Domainname for the server [default: not used]
     proxyport:        Proxy server (server:port) [default: not used]
