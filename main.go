@@ -18,7 +18,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const version = "1.6.0"
+const version = "1.6.1"
 
 type Config struct {
 	Username    string
@@ -107,7 +107,7 @@ func main() { // IO:self
 		if n > 0 {
 			mails = true
 		}
-		if errormsg != "" {
+		if errormsg != "" && verbose == 2 {
 			log.Print(errormsg)
 		}
 	}
@@ -117,7 +117,7 @@ func main() { // IO:self
 		for account, n := range accounts {
 			logline += account+": "+n+" "
 		}
-		fmt.Fprintf(os.Stderr, "%s(%.3fs) ", logline, duration)
+		fmt.Printf("%s(%.3fs) ", logline, duration)
 	} else if verbose == 2 {
 		log.Printf("Running time: %fs", duration)
 	}
