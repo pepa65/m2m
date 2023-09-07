@@ -3,7 +3,7 @@ password: notlongenough
 tlsdomain: pop.up.net
 server: fferfergrgrsehser.onion
 #port: 110
-#proxyaddress: 127.0.0.1:9050
+#proxyport: 127.0.0.1:9050
 #tls: false
 #keep: true
-#maildirpath: /data/Maildir
+#maildir: /data/Maildir

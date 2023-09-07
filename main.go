@@ -21,20 +21,21 @@ import (
 const version = "1.4.1"
 
 type Config struct {
-	Username         string
-	Password         string
-	TLSDomain        string
-	Server           string
-	Port             string
-	ProxyAddressPort string
-	TLS              bool
-	Keep             bool
-	MaildirPath      string
+	Username  string
+	Password  string
+	TLSDomain string
+	Server    string
+	Port      string
+	ProxyPort string
+	TLS       bool
+	Keep      bool
+	Maildir   string
 }
 
 var (
 	self = ""
 	home = ""
+	accounts = make(map[string]string)
 )
 
 func usage(msg string) { // I:self,version
@@ -49,15 +50,15 @@ func usage(msg string) { // I:self,version
 * The directory '~/.m2m.conf' contains all the account config files, which
   are checked in lexical order. Yhe filename is the account name.
 * Parameters in the configuration files:
-    username:          POP3 username
-    password:          POP3 password
-    tlsdomain:         Server domainname according to the certificate
-    server:            IP/Domainname of the server
-    port:              Port (default: 995)
-    proxyaddressport:  Proxy server IP/Domainname:Port (default: not used)
-    tls: true/false    Use TLS (default), or not
-    keep: true/false   Keep mails on POP3 server, or delete them (default)
-    maildirpath:       Path to the Maildir directory (default: '~/Maildir')
+    username:         POP3 username
+    password:         POP3 password
+    tlsdomain:        Server domainname according to the certificate
+    server:           IP/Domainname of the server
+    port:             Port (default: 995)
+    proxyport:        Proxy server IP/Domainname:Port (default: not used)
+    tls: true/false   Use TLS (default), or not
+    keep: true/false  Keep mails on POP3 server, or delete them (default)
+    maildir:          Path to the Maildir directory (default: '~/Maildir')
 `)
 
 	if msg != "" {
@@ -99,58 +100,63 @@ func main() { // IO:self
 		log.Fatal(err)
 	}
 
-	start := time.Now()
-	logline := ""
 	nmsg := 0
+	start := time.Now()
 	for _, file := range files {
-		res, n := check(file.Name(), filepath.Join(cfgpath, file.Name()), verbose)
-		logline += res
-		nmsg += n
+		result := check(file.Name(), filepath.Join(cfgpath, file.Name()), verbose)
+		if result != "" {
+			log.Print(result)
+		}
 	}
 	duration := time.Since(start).Seconds()
 	if verbose == 1 && nmsg > 0 {
-		now := time.Now().Format("2006-01-02_15:04:05")
-		fmt.Fprintf(os.Stderr, "%s %s(%.3fs) ", now, logline, duration)
+		logline := time.Now().Format("2006-01-02_15:04:05 ")
+		for account, n := range accounts {
+			logline += account+": "+n+" "
+		}
+		fmt.Fprintf(os.Stderr, "%s(%.3fs) ", logline, duration)
 	} else if verbose == 2 {
 		log.Printf("Running time: %fs", duration)
 	}
 }
 
-func check(account string, filename string, verbose int) (string, int) {
+func check(account string, filename string, verbose int) string {
 	cfgdata, err := ioutil.ReadFile(filename)
 	if err != nil {
-		log.Fatal(err)
+		return account+": "+err.Error()
 	}
 
 	var cfg Config
 	// Default values
 	cfg.Port = "995"
 	cfg.TLS = true
+	cfg.Maildir = filepath.Join(home, "Maildir")
+
 	err = yaml.UnmarshalStrict(cfgdata, &cfg)
 	if err != nil {
-		log.Fatalf("Error in config file '%s'\n%s", filename, err.Error())
+		return fmt.Sprintf("%s: Error in config file '%s'\n%s", account, filename, err.Error())
 	}
 
 	var dialer Dialer
 	dialer = &net.Dialer{}
-	if cfg.ProxyAddressPort != "" {
-		dialer, err = proxy.SOCKS5("tcp", cfg.ProxyAddressPort, nil, proxy.Direct)
+	if cfg.ProxyPort != "" {
+		dialer, err = proxy.SOCKS5("tcp", cfg.ProxyPort, nil, proxy.Direct)
 		if err != nil {
-			log.Fatal(err)
+			return account+": "+err.Error()
 		}
 	}
 
 	var conn net.Conn
 	conn, err = dialer.Dial("tcp", cfg.Server+":"+cfg.Port)
 	if err != nil {
-		log.Fatal(err)
+		return account+": "+err.Error()
 	}
 
 	if cfg.TLS {
 		tlsConfig := &tls.Config{ServerName: cfg.TLSDomain}
 		tlsConn := tls.Client(conn, tlsConfig)
 		if err != nil {
-			log.Fatal(err)
+			return account+": "+err.Error()
 		}
 
 		conn = tlsConn
@@ -159,99 +165,102 @@ func check(account string, filename string, verbose int) (string, int) {
 	buf := make([]byte, 255)
 	n, err := conn.Read(buf)
 	if err != nil {
-		log.Fatal(err)
+		return account+": "+err.Error()
 	}
 
 	ok, msg, err := ParseResponseLine(string(buf[:n]))
 	if err != nil {
-		log.Fatal(err)
+		return account+": "+err.Error()
 	}
 
 	if !ok {
-		log.Fatalf("Server error: %s", msg)
+		return account+": Server error: "+msg
 	}
 
 	popConn := NewPOP3Conn(conn)
-	line, _ := popConn.Cmd("UTF8")  // Ignore server error
+	line, _ := popConn.Cmd("UTF8")  // Ignore any server error
 	line, err = popConn.Cmd("USER %s", cfg.Username)
 	if err != nil {
-		log.Fatal(err)
+		return account+": "+err.Error()
 	}
 
 	line, err = popConn.Cmd("PASS %s", cfg.Password)
 	if err != nil {
-		log.Fatal(err)
+		return account+": "+err.Error()
 	}
 
 	line, err = popConn.Cmd("STAT")
 	if err != nil {
-		log.Fatal(err)
+		return account+": "+err.Error()
 	}
 
-	s := strings.Split(line, " ")
-	if len(s) != 2 {
-		log.Fatalf("STAT malformed: %s", line)
+	stat := strings.Split(line, " ")
+	if len(stat) != 2 {
+		return account+": "+"STAT response malformed: "+line
 	}
 
-	nmsg, err := strconv.Atoi(s[0])
+	nmsg, err := strconv.Atoi(stat[0])
 	if err != nil {
-		log.Fatal(err)
+		return account+": "+"Malformed number of messages: "+stat[0]
 	}
 
-	boxsize, err := strconv.Atoi(s[1])
+	boxsize, err := strconv.Atoi(stat[1])
 	if err != nil {
-		log.Fatal(err)
+		return account+": "+"Malformed mailbox size: "+stat[1]
 	}
 
-	var logaccount string
 	if verbose == 2 {
-		log.Printf("Found %d messages of total size %d bytes", nmsg, boxsize)
-	} else if verbose > 0 {
-		logaccount = fmt.Sprintf("%s: %d ", account, nmsg)
+		log.Printf("%s: Found %d messages of total size %d bytes", account, nmsg, boxsize)
+	} else if verbose == 1 {
+		accounts["account"] = stat[0]
 	}
 	for i := 1; i <= nmsg; i++ {
 		line, data, err := popConn.CmdMulti("RETR %d", i)
 		if err != nil {
-			log.Fatal(err)
+			log.Printf("%s: Error retrieving message %d/%d: %s", account, i, nmsg, err.Error())
+			continue
 		}
 
-		s := strings.SplitN(line, " ", 2)
-		msgSize := "?"
-		if _, err := strconv.Atoi(s[0]); err == nil {
-			msgSize = s[0]
+		size, _, ok := strings.Cut(line, " ")
+		if !ok && verbose == 2 {
+			log.Printf("%s: RETR response malformed for message %d/%d: %s", account, i, nmsg, line)
+		}
+		_, err = strconv.Atoi(size)
+		if err != nil && verbose == 2 {
+			log.Printf("%s: Malformed size for message %d/%d: %s", account, i, nmsg, size)
+			size = "?"
 		}
 		if verbose == 2 {
-			log.Printf("Fetching message %d/%d (%s bytes)", i, nmsg, msgSize)
+			log.Printf("%s: Fetched message %d/%d (%s bytes)", account, i, nmsg, size)
 		}
-		maildir := cfg.MaildirPath
-		if maildir == "" {
-			maildir = filepath.Join(home, "Maildir")
-		}
-		err = SaveToMaildir(cfg.MaildirPath, data)
+		err = SaveToMaildir(cfg.Maildir, data)
 		if err != nil {
-			log.Fatal(err)
+			log.Printf("%s: Error saving mesage %d/%d to maildir %s: %s", account, i, nmsg, cfg.Maildir, err.Error())
+			continue
 		}
 
 		if !cfg.Keep {
 			line, err = popConn.Cmd("DELE %d", i)
 			if err != nil {
-				log.Fatal(err)
+				log.Printf("%s: Error deleting mesage %d/%d from server: %s", account, i, nmsg, err.Error())
+			} else if verbose == 2 {
+				log.Print(account+": Deleted message %d/%d from server: "+line)
 			}
 		}
 	}
 
 	if verbose == 2 && nmsg > 0 {
 		if cfg.Keep {
-			log.Printf("Not deleting messages from the server")
-		} else {
-			log.Printf("Deleted all messages from the server")
+			log.Print(account+": Not deleting messages from the server")
 		}
 	}
 	line, err = popConn.Cmd("QUIT")
 	if err != nil {
-		log.Fatal(err)
+		log.Print(account+": Error quitting from server: "+err.Error())
+	} else if verbose == 2 {
+		log.Print(account+": Quit from server: "+line)
 	}
 
 	conn.Close()
-	return logaccount, nmsg
+	return ""
 }
