@@ -20,7 +20,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const version = "1.9.6"
+const version = "1.9.7"
 
 type Config struct {
 	Username    string
@@ -52,8 +52,9 @@ func usage(msg string) { // I:self,version
     No flag:     A minimal report is sent to 'stdout' (nothing on no mails),
                  and any additional verbose output is logged to 'stderr'.
 * The directory '~/.m2m.conf' contains all the account config files, which
-  are checked concurrently. The filename is the account name.
+  are checked concurrently. The filename is taken as the account name.
 * Parameters in the configuration files:
+    active: true/false  Account is active [default] or not
     username:           POP3 username [mandatory]
     password:           POP3 password [mandatory]
     tlsdomain:          Server domainname (as in its certificate) [mandatory]
@@ -63,7 +64,6 @@ func usage(msg string) { // I:self,version
     tls: true/false     Use TLS [default], or not
     keep: true/false    Keep mails on POP3 server, or delete them [default]
     maildir:            Path to the Maildir directory [default: '~/Maildir']
-    active: true/false  Account is active [default] or not
 `)
 
 	if msg != "" {
@@ -73,7 +73,7 @@ func usage(msg string) { // I:self,version
 	os.Exit(0)
 }
 
-func main() { // IO:self,home I:accounts
+func main() { // I:accounts O:self,home IO:wg
 	selfparts := strings.Split(os.Args[0], "/")
 	self = selfparts[len(selfparts)-1]
 	if len(os.Args) > 2 {
@@ -137,7 +137,7 @@ func unpanic() {
 	recover()
 }
 
-func check(account string, filename string, quiet bool) { // I:home O:accounts
+func check(account string, filename string, quiet bool) { // I:home O:accounts IO:wg
 	defer unpanic()
 	defer wg.Done()
 	cfgdata, err := ioutil.ReadFile(filename)
