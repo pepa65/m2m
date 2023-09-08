@@ -20,7 +20,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const version = "1.9.0"
+const version = "1.9.1"
 
 type Config struct {
 	Username    string
@@ -52,7 +52,7 @@ func usage(msg string) { // I:self,version
     No flag:     A minimal report is sent to 'stdout' (nothing on no mails),
                  and any additional verbose output is logged to 'stderr'.
 * The directory '~/.m2m.conf' contains all the account config files, which
-  are checked in lexical order. The filename is the account name.
+  are checked concurrently. The filename is the account name.
 * Parameters in the configuration files:
     username:           POP3 username [mandatory]
     password:           POP3 password [mandatory]
@@ -132,9 +132,13 @@ func main() { // IO:self,home I:accounts
 	}
 }
 
+func printPanic() {
+	log.Print(recover())
+}
+
 func check(account string, filename string, quiet bool) { // I:home O:accounts
 	defer wg.Done()
-	defer recover()
+	defer printPanic()
 	cfgdata, err := ioutil.ReadFile(filename)
 	if err != nil {
 		log.Panic(account+": "+err.Error())
