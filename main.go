@@ -20,7 +20,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const version = "1.9.4"
+const version = "1.9.5"
 
 type Config struct {
 	Username    string
@@ -123,7 +123,7 @@ func main() { // IO:self,home I:accounts
 	duration := time.Since(start).Seconds()
 	if !quiet && mails {
 		logline := time.Now().Format("2006-01-02_15:04:05 ")
-		for _, account := range accounts {
+		for account := range accounts {
 			logline += account+": "+accounts[account]+" "
 		}
 		fmt.Printf("%s(%.3fs) ", logline, duration)
