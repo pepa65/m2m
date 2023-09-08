@@ -20,7 +20,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const version = "1.9.2"
+const version = "1.9.3"
 
 type Config struct {
 	Username    string
@@ -134,7 +134,10 @@ func main() { // IO:self,home I:accounts
 }
 
 func printPanic() {
-	log.Print(recover())
+	r := recover()
+	if r != nil {
+		log.Print(r)
+	}
 }
 
 func check(account string, filename string, quiet bool) { // I:home O:accounts
@@ -234,10 +237,10 @@ func check(account string, filename string, quiet bool) { // I:home O:accounts
 	}
 
 	nmsg, err := strconv.Atoi(stat[0])
-	if err != nil {
-		log.Panic(account+": "+"Malformed number of messages: "+stat[0])
-	} else {
+	if err == nil {
 		accounts[account] = stat[0]
+	} else {
+		log.Panic(account+": "+"Malformed number of messages: "+stat[0])
 	}
 
 	boxsize, err := strconv.Atoi(stat[1])
@@ -276,13 +279,12 @@ func check(account string, filename string, quiet bool) { // I:home O:accounts
 		if !cfg.Keep {
 			line, err = popConn.Cmd("DELE %d", i)
 			if err != nil {
-				log.Printf("%s: Error deleting mesage %d/%d from server: %s", account, i, nmsg, err.Error())
+				log.Printf("%s: Error deleting mesage %d/%d from the server: %s", account, i, nmsg, err.Error())
 			} else if !quiet {
-				log.Print(account+": Deleted message %d/%d from server: "+line)
+				log.Printf("%s: Deleted message %d/%d from the server", account, i, nmsg)
 			}
 		}
 	}
-
 	if !quiet && nmsg > 0 && cfg.Keep {
 		log.Print(account+": Not deleting messages from the server")
 	}
