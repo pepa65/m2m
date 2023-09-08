@@ -20,7 +20,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const version = "1.9.5"
+const version = "1.9.6"
 
 type Config struct {
 	Username    string
@@ -115,7 +115,7 @@ func main() { // IO:self,home I:accounts
 	for _, file := range files {
 		wg.Add(1)
 		go check(file, filepath.Join(cfgpath, file), quiet)
-		if accounts[file] != "0" {
+		if accounts[file] != "0" && accounts[file] != "" {
 			mails = true
 		}
 	}
