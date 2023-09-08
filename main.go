@@ -20,7 +20,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const version = "1.9.8"
+const version = "1.10.0"
 
 type Config struct {
 	Username    string
@@ -34,6 +34,8 @@ type Config struct {
 	Maildir     string
 	Active      bool
 }
+
+type logp struct {}
 
 var (
 	self = ""
@@ -73,6 +75,10 @@ func usage(msg string) { // I:self,version
 	os.Exit(0)
 }
 
+func (w *logp) Write(bytes []byte) (int, error) {
+  return fmt.Fprint(os.Stderr, time.Now().String()[:23] + " " + string(bytes))
+}
+
 func main() { // I:accounts O:self,home IO:wg
 	selfparts := strings.Split(os.Args[0], "/")
 	self = selfparts[len(selfparts)-1]
@@ -91,22 +97,23 @@ func main() { // I:accounts O:self,home IO:wg
 		}
 	}
 
+	log.SetOutput(new(logp))
 	var err error
 	home, err = os.UserHomeDir()
 	if err != nil { // Critical message
-		log.Fatal(err)
+		log.Fatal("- "+err.Error())
 	}
 
 	cfgpath := filepath.Join(home, ".m2m.conf")
 	//files, err := ioutil.ReadDir(cfgpath)
 	dir, err := os.Open(cfgpath)
 	if err != nil { // Critical message
-		log.Fatal(err)
+		log.Fatal("- "+err.Error())
 	}
 
 	files, err := dir.Readdirnames(0)
 	if err != nil { // Critical message
-		log.Fatal(err)
+		log.Fatal("- "+err.Error())
 	}
 
 	mails := false
@@ -129,7 +136,7 @@ func main() { // I:accounts O:self,home IO:wg
 		fmt.Printf("%s(%.3fs) ", logline, duration)
 	}
 	if !quiet {
-		log.Printf("Running time: %fs", duration)
+		log.Printf("- Running time: %fs", duration)
 	}
 }
 
