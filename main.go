@@ -20,7 +20,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const version = "1.9.3"
+const version = "1.9.4"
 
 type Config struct {
 	Username    string
@@ -123,7 +123,7 @@ func main() { // IO:self,home I:accounts
 	duration := time.Since(start).Seconds()
 	if !quiet && mails {
 		logline := time.Now().Format("2006-01-02_15:04:05 ")
-		for _, account := range files {
+		for _, account := range accounts {
 			logline += account+": "+accounts[account]+" "
 		}
 		fmt.Printf("%s(%.3fs) ", logline, duration)
@@ -133,15 +133,12 @@ func main() { // IO:self,home I:accounts
 	}
 }
 
-func printPanic() {
-	r := recover()
-	if r != nil {
-		log.Print(r)
-	}
+func unpanic() {
+	recover()
 }
 
 func check(account string, filename string, quiet bool) { // I:home O:accounts
-	defer printPanic()
+	defer unpanic()
 	defer wg.Done()
 	cfgdata, err := ioutil.ReadFile(filename)
 	if err != nil {
