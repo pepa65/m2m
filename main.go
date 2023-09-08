@@ -20,7 +20,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const version = "1.10.0"
+const version = "1.10.1"
 
 type Config struct {
 	Username    string
@@ -98,6 +98,7 @@ func main() { // I:accounts O:self,home IO:wg
 	}
 
 	log.SetOutput(new(logp))
+	log.SetFlags(0)
 	var err error
 	home, err = os.UserHomeDir()
 	if err != nil { // Critical message
