@@ -130,7 +130,7 @@ func main() { // I:accounts O:self,home IO:wg
 	duration := time.Since(start).Seconds()
 	if !quiet && mails {
 		logline := time.Now().Format("2006-01-02_15:04:05 ")
-		for account := range accounts {
+		for account, _ := range accounts {
 			logline += accounts[account]+" "
 		}
 		fmt.Printf("%s(%.3fs) ", logline, duration)
