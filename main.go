@@ -245,7 +245,7 @@ func check(account string, filename string, quiet bool) { // I:home O:accounts I
 
 	nmsg, err := strconv.Atoi(stat[0])
 	if err == nil {
-		accounts[account] = stat[0]
+		accounts[account] = nmsg
 	} else { // Critical message
 		log.Panic("Malformed number of messages: "+stat[0])
 	}
