@@ -40,7 +40,7 @@ type writer struct {}
 var (
 	self = ""
 	home = ""
-	accounts = make(map[string]int)
+	accounts = make(map[string]string)
 	wg sync.WaitGroup
 )
 
@@ -128,9 +128,11 @@ func main() { // I:accounts O:self,home IO:wg
 		mails := false
 		logline := time.Now().Format("2006-01-02_15:04:05 ")
 		for _, file := range files {
-			logline += strconv.Itoa(accounts[file])+" "
-			if accounts[file] > 0 {
-				mails = true
+			if n :=accounts[file]; n != "" {
+				logline += file+": "+n+" "
+				if n != "0" {
+					mails = true
+				}
 			}
 		}
 		if mails {
@@ -245,7 +247,7 @@ func check(account string, filename string, quiet bool) { // I:home O:accounts I
 
 	nmsg, err := strconv.Atoi(stat[0])
 	if err == nil {
-		accounts[account] = nmsg
+		accounts[account] = stat[0]
 	} else { // Critical message
 		log.Panic("Malformed number of messages: "+stat[0])
 	}
