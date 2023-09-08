@@ -40,7 +40,7 @@ type writer struct {}
 var (
 	self = ""
 	home = ""
-	accounts = make(map[string]string)
+	accounts = make(map[string]int)
 	wg sync.WaitGroup
 )
 
@@ -116,27 +116,29 @@ func main() { // I:accounts O:self,home IO:wg
 		log.Fatal(err)
 	}
 
-	mails := false
 	start := time.Now()
 	sort.Strings(files)
 	for _, file := range files {
 		wg.Add(1)
 		go check(file, filepath.Join(cfgpath, file), quiet)
-		if accounts[file] != "0" && accounts[file] != "" {
-			mails = true
-		}
 	}
 	wg.Wait()
 	duration := time.Since(start).Seconds()
-	if !quiet && mails {
+	if !quiet {
+		mails := false
 		logline := time.Now().Format("2006-01-02_15:04:05 ")
-		for account, _ := range accounts {
-			logline += accounts[account]+" "
+		for _, file := range files {
+			logline += strconv.Itoa(accounts[file])+" "
+			if accounts[file] > 0 {
+				mails = true
+			}
 		}
-		fmt.Printf("%s(%.3fs) ", logline, duration)
+		if mails {
+			fmt.Printf("%s(%.3fs) ", logline, duration)
+		}
 	}
 	if !quiet {
-		log.Printf("Running time: %fs", duration)
+		log.Printf("Server checking time: %fs", duration)
 	}
 }
 
