@@ -31,6 +31,7 @@ type Config struct {
 	TLS         bool
 	Keep        bool
 	Maildir     string
+	Active      bool
 }
 
 var (
@@ -51,15 +52,16 @@ func usage(msg string) { // I:self,version
 * The directory '~/.m2m.conf' contains all the account config files, which
   are checked in lexical order. The filename is the account name.
 * Parameters in the configuration files:
-    username:         POP3 username [mandatory]
-    password:         POP3 password [mandatory]
-    tlsdomain:        Server domainname (as in its certificate) [mandatory]
-    port:             Port [default: 995]
-    entryserver:      Initial IP/Domainname for the server [default: not used]
-    proxyport:        Proxy server (server:port) [default: not used]
-    tls: true/false   Use TLS [default], or not
-    keep: true/false  Keep mails on POP3 server, or delete them [default]
-    maildir:          Path to the Maildir directory [default: '~/Maildir']
+    username:           POP3 username [mandatory]
+    password:           POP3 password [mandatory]
+    tlsdomain:          Server domainname (as in its certificate) [mandatory]
+    port:               Port [default: 995]
+    entryserver:        Initial IP/Domainname for the server [default: not used]
+    proxyport:          Proxy server (server:port) [default: not used]
+    tls: true/false     Use TLS [default], or not
+    keep: true/false    Keep mails on POP3 server, or delete them [default]
+    maildir:            Path to the Maildir directory [default: '~/Maildir']
+    active: true/false  Account is active [default] or not
 `)
 
 	if msg != "" {
@@ -141,11 +143,15 @@ func check(account string, filename string, quiet bool) (int, string) {
 	cfg.Port = "995"
 	cfg.TLS = true
 	cfg.Maildir = filepath.Join(home, "Maildir")
+	cfg.Active = true
 	err = yaml.UnmarshalStrict(cfgdata, &cfg)
 	if err != nil {
 		return 0, account+": Error in config file '"+filename+"'\n"+err.Error()
 	}
 
+	if !cfg.Active {
+		return 0, account+": Inactive"
+	}
 	if cfg.Username == "" {
 		return 0, account+": Missing 'username' in configfile '"+filename+"'"
 	}
