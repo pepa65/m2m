@@ -20,7 +20,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const version = "1.10.3"
+const version = "1.10.4"
 
 type Config struct {
 	Username    string
@@ -97,9 +97,7 @@ func main() { // I:accounts O:self,home IO:wg
 		}
 	}
 
-	log.SetOutput(new(writer))
-	log.SetFlags(log.Lmsgprefix)
-	log.SetPrefix("- ")
+	log := log.New(new(writer), "- ", log.Lmsgprefix)
 	var err error
 	home, err = os.UserHomeDir()
 	if err != nil { // Critical message
@@ -256,7 +254,7 @@ func check(account string, filename string, quiet bool) { // I:home O:accounts I
 	}
 
 	if !quiet {
-		log.Printf("Found %d messages of total size %d bytes", nmsg, boxsize)
+		log.Printf("Messages: %d Total %d bytes", nmsg, boxsize)
 	}
 	for i := 1; i <= nmsg; i++ {
 		line, data, err := popConn.CmdMulti("RETR %d", i)
