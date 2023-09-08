@@ -13,13 +13,14 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"golang.org/x/net/proxy"
 	"gopkg.in/yaml.v2"
 )
 
-const version = "1.7.2"
+const version = "1.9.0"
 
 type Config struct {
 	Username    string
@@ -38,6 +39,7 @@ var (
 	self = ""
 	home = ""
 	accounts = make(map[string]string)
+	wg sync.WaitGroup
 )
 
 func usage(msg string) { // I:self,version
@@ -71,7 +73,7 @@ func usage(msg string) { // I:self,version
 	os.Exit(0)
 }
 
-func main() { // IO:self
+func main() { // IO:self,home I:accounts
 	selfparts := strings.Split(os.Args[0], "/")
 	self = selfparts[len(selfparts)-1]
 	if len(os.Args) > 2 {
@@ -111,12 +113,10 @@ func main() { // IO:self
 	start := time.Now()
 	sort.Strings(files)
 	for _, file := range files {
-		n, errormsg := check(file, filepath.Join(cfgpath, file), quiet)
-		if n > 0 {
+		wg.Add(1)
+		go check(file, filepath.Join(cfgpath, file), quiet)
+		if accounts[file] != "0" {
 			mails = true
-		}
-		if errormsg != "" && !quiet {
-			log.Print(errormsg)
 		}
 	}
 	duration := time.Since(start).Seconds()
@@ -132,10 +132,12 @@ func main() { // IO:self
 	}
 }
 
-func check(account string, filename string, quiet bool) (int, string) {
+func check(account string, filename string, quiet bool) { // I:home O:accounts
+	defer wg.Done()
+	defer recover()
 	cfgdata, err := ioutil.ReadFile(filename)
 	if err != nil {
-		return 0, account+": "+err.Error()
+		log.Panic(account+": "+err.Error())
 	}
 
 	var cfg Config
@@ -146,18 +148,18 @@ func check(account string, filename string, quiet bool) (int, string) {
 	cfg.Active = true
 	err = yaml.UnmarshalStrict(cfgdata, &cfg)
 	if err != nil {
-		return 0, account+": Error in config file '"+filename+"'\n"+err.Error()
+		log.Panic(account+": Error in config file '"+filename+"'\n"+err.Error())
 	}
 
 	if !cfg.Active {
-		return 0, account+": Inactive"
+		log.Panic(account+": Inactive")
 	}
 	if cfg.Username == "" {
-		return 0, account+": Missing 'username' in configfile '"+filename+"'"
+		log.Panic(account+": Missing 'username' in configfile '"+filename+"'")
 	}
 
 	if cfg.TLSDomain == "" && cfg.TLS == true {
-		return 0, account+": Missing 'tlsdomain' in configfile '"+filename+"' while TLS required"
+		log.Panic(account+": Missing 'tlsdomain' in configfile '"+filename+"' while TLS required")
 	}
 
 	var dialer Dialer
@@ -165,7 +167,7 @@ func check(account string, filename string, quiet bool) (int, string) {
 	if cfg.ProxyPort != "" {
 		dialer, err = proxy.SOCKS5("tcp", cfg.ProxyPort, nil, proxy.Direct)
 		if err != nil {
-			return 0, account+": "+err.Error()
+			log.Panic(account+": "+err.Error())
 		}
 	}
 
@@ -176,14 +178,14 @@ func check(account string, filename string, quiet bool) (int, string) {
 		conn, err = dialer.Dial("tcp", cfg.TLSDomain+":"+cfg.Port)
 	}
 	if err != nil {
-		return 0, account+": "+err.Error()
+		log.Panic(account+": "+err.Error())
 	}
 
 	if cfg.TLS {
 		tlsConfig := &tls.Config{ServerName: cfg.TLSDomain}
 		tlsConn := tls.Client(conn, tlsConfig)
 		if err != nil {
-			return 0, account+": "+err.Error()
+			log.Panic(account+": "+err.Error())
 		}
 
 		conn = tlsConn
@@ -192,50 +194,50 @@ func check(account string, filename string, quiet bool) (int, string) {
 	buf := make([]byte, 255)
 	n, err := conn.Read(buf)
 	if err != nil {
-		return 0, account+": "+err.Error()
+		log.Panic(account+": "+err.Error())
 	}
 
 	ok, msg, err := ParseResponseLine(string(buf[:n]))
 	if err != nil {
-		return 0, account+": "+err.Error()
+		log.Panic(account+": "+err.Error())
 	}
 
 	if !ok {
-		return 0, account+": Server error: "+msg
+		log.Panic(account+": Server error: "+msg)
 	}
 
 	popConn := NewPOP3Conn(conn)
-	line, _ := popConn.Cmd("UTF8")  // Ignore any server error
-	line, err = popConn.Cmd("USER %s", cfg.Username)
+	popConn.Cmd("UTF8")
+	line, err := popConn.Cmd("USER %s", cfg.Username)
 	if err != nil {
-		return 0, account+": "+err.Error()
+		log.Panic(account+": "+err.Error())
 	}
 
 	line, err = popConn.Cmd("PASS %s", cfg.Password)
 	if err != nil {
-		return 0, account+": "+err.Error()
+		log.Panic(account+": "+err.Error())
 	}
 
 	line, err = popConn.Cmd("STAT")
 	if err != nil {
-		return 0, account+": "+err.Error()
+		log.Panic(account+": "+err.Error())
 	}
 
 	stat := strings.Split(line, " ")
 	if len(stat) != 2 {
-		return 0, account+": "+"STAT response malformed: "+line
+		log.Panic(account+": "+"STAT response malformed: "+line)
 	}
 
 	nmsg, err := strconv.Atoi(stat[0])
 	if err != nil {
-		return 0, account+": "+"Malformed number of messages: "+stat[0]
+		log.Panic(account+": "+"Malformed number of messages: "+stat[0])
 	} else {
 		accounts[account] = stat[0]
 	}
 
 	boxsize, err := strconv.Atoi(stat[1])
 	if err != nil {
-		return 0, account+": "+"Malformed mailbox size: "+stat[1]
+		log.Panic(account+": "+"Malformed mailbox size: "+stat[1])
 	}
 
 	if !quiet {
@@ -276,12 +278,9 @@ func check(account string, filename string, quiet bool) (int, string) {
 		}
 	}
 
-	if !quiet && nmsg > 0 {
-		if cfg.Keep {
-			log.Print(account+": Not deleting messages from the server")
-		}
+	if !quiet && nmsg > 0 && cfg.Keep {
+		log.Print(account+": Not deleting messages from the server")
 	}
 	popConn.Cmd("QUIT")
 	conn.Close()
-	return nmsg, ""
 }
