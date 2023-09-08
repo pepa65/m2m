@@ -20,7 +20,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const version = "1.10.1"
+const version = "1.10.2"
 
 type Config struct {
 	Username    string
@@ -35,7 +35,7 @@ type Config struct {
 	Active      bool
 }
 
-type logp struct {}
+type writer struct {}
 
 var (
 	self = ""
@@ -75,7 +75,7 @@ func usage(msg string) { // I:self,version
 	os.Exit(0)
 }
 
-func (w *logp) Write(bytes []byte) (int, error) {
+func (w writer) Write(bytes []byte) (int, error) {
   return fmt.Fprint(os.Stderr, time.Now().String()[:23] + " " + string(bytes))
 }
 
@@ -97,8 +97,9 @@ func main() { // I:accounts O:self,home IO:wg
 		}
 	}
 
-	log.SetOutput(new(logp))
-	log.SetFlags(0)
+	log.SetOutput(new(writer))
+	log.SetFlags(log.Lmsgprefix)
+	log.SetPrefix("- ")
 	var err error
 	home, err = os.UserHomeDir()
 	if err != nil { // Critical message
@@ -148,6 +149,7 @@ func unpanic() {
 func check(account string, filename string, quiet bool) { // I:home O:accounts IO:wg
 	defer unpanic()
 	defer wg.Done()
+	log := log.New(new(writer), account, log.Lmsgprefix)
 	cfgdata, err := ioutil.ReadFile(filename)
 	if err != nil { // Critical message
 		log.Panic(account+": "+err.Error())
