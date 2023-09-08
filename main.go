@@ -20,7 +20,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const version = "1.9.7"
+const version = "1.9.8"
 
 type Config struct {
 	Username    string
@@ -66,7 +66,7 @@ func usage(msg string) { // I:self,version
     maildir:            Path to the Maildir directory [default: '~/Maildir']
 `)
 
-	if msg != "" {
+	if msg != "" { // Critical message
 		fmt.Fprintf(os.Stderr, "\n%v\n", msg)
 		os.Exit(1)
 	}
@@ -76,7 +76,7 @@ func usage(msg string) { // I:self,version
 func main() { // I:accounts O:self,home IO:wg
 	selfparts := strings.Split(os.Args[0], "/")
 	self = selfparts[len(selfparts)-1]
-	if len(os.Args) > 2 {
+	if len(os.Args) > 2 { // Critical message
 		usage("Only 1 (optional) argument allowed: -h/--help / -q/--quiet")
 	}
 
@@ -86,26 +86,26 @@ func main() { // I:accounts O:self,home IO:wg
 			usage("")
 		} else if os.Args[1] == "-q" || os.Args[1] == "--quiet" {
 			quiet = true
-		} else {
+		} else { // Critical message
 			usage("The only argument allowed is: -h/--help / -q/--quiet")
 		}
 	}
 
 	var err error
 	home, err = os.UserHomeDir()
-	if err != nil {
+	if err != nil { // Critical message
 		log.Fatal(err)
 	}
 
 	cfgpath := filepath.Join(home, ".m2m.conf")
 	//files, err := ioutil.ReadDir(cfgpath)
 	dir, err := os.Open(cfgpath)
-	if err != nil {
+	if err != nil { // Critical message
 		log.Fatal(err)
 	}
 
 	files, err := dir.Readdirnames(0)
-	if err != nil {
+	if err != nil { // Critical message
 		log.Fatal(err)
 	}
 
@@ -141,7 +141,7 @@ func check(account string, filename string, quiet bool) { // I:home O:accounts I
 	defer unpanic()
 	defer wg.Done()
 	cfgdata, err := ioutil.ReadFile(filename)
-	if err != nil {
+	if err != nil { // Critical message
 		log.Panic(account+": "+err.Error())
 	}
 
@@ -152,18 +152,18 @@ func check(account string, filename string, quiet bool) { // I:home O:accounts I
 	cfg.Maildir = filepath.Join(home, "Maildir")
 	cfg.Active = true
 	err = yaml.UnmarshalStrict(cfgdata, &cfg)
-	if err != nil {
+	if err != nil { // Critical message
 		log.Panic(account+": Error in config file '"+filename+"'\n"+err.Error())
 	}
 
-	if !cfg.Active {
+	if !cfg.Active && !quiet {
 		log.Panic(account+": Inactive")
 	}
-	if cfg.Username == "" {
+	if cfg.Username == "" { // Critical message
 		log.Panic(account+": Missing 'username' in configfile '"+filename+"'")
 	}
 
-	if cfg.TLSDomain == "" && cfg.TLS == true {
+	if cfg.TLSDomain == "" && cfg.TLS == true { // Critical message
 		log.Panic(account+": Missing 'tlsdomain' in configfile '"+filename+"' while TLS required")
 	}
 
@@ -171,7 +171,7 @@ func check(account string, filename string, quiet bool) { // I:home O:accounts I
 	dialer = &net.Dialer{}
 	if cfg.ProxyPort != "" {
 		dialer, err = proxy.SOCKS5("tcp", cfg.ProxyPort, nil, proxy.Direct)
-		if err != nil {
+		if err != nil { // Critical message
 			log.Panic(account+": "+err.Error())
 		}
 	}
@@ -182,14 +182,14 @@ func check(account string, filename string, quiet bool) { // I:home O:accounts I
 	} else {
 		conn, err = dialer.Dial("tcp", cfg.TLSDomain+":"+cfg.Port)
 	}
-	if err != nil {
+	if err != nil { // Critical message
 		log.Panic(account+": "+err.Error())
 	}
 
 	if cfg.TLS {
 		tlsConfig := &tls.Config{ServerName: cfg.TLSDomain}
 		tlsConn := tls.Client(conn, tlsConfig)
-		if err != nil {
+		if err != nil { // Critical message
 			log.Panic(account+": "+err.Error())
 		}
 
@@ -198,50 +198,50 @@ func check(account string, filename string, quiet bool) { // I:home O:accounts I
 
 	buf := make([]byte, 255)
 	n, err := conn.Read(buf)
-	if err != nil {
+	if err != nil { // Critical message
 		log.Panic(account+": "+err.Error())
 	}
 
 	ok, msg, err := ParseResponseLine(string(buf[:n]))
-	if err != nil {
+	if err != nil { // Critical message
 		log.Panic(account+": "+err.Error())
 	}
 
-	if !ok {
+	if !ok { // Critical message
 		log.Panic(account+": Server error: "+msg)
 	}
 
 	popConn := NewPOP3Conn(conn)
 	popConn.Cmd("UTF8")
 	line, err := popConn.Cmd("USER %s", cfg.Username)
-	if err != nil {
+	if err != nil { // Critical message
 		log.Panic(account+": "+err.Error())
 	}
 
 	line, err = popConn.Cmd("PASS %s", cfg.Password)
-	if err != nil {
+	if err != nil { // Critical message
 		log.Panic(account+": "+err.Error())
 	}
 
 	line, err = popConn.Cmd("STAT")
-	if err != nil {
+	if err != nil { // Critical message
 		log.Panic(account+": "+err.Error())
 	}
 
 	stat := strings.Split(line, " ")
-	if len(stat) != 2 {
+	if len(stat) != 2 { // Critical message
 		log.Panic(account+": "+"STAT response malformed: "+line)
 	}
 
 	nmsg, err := strconv.Atoi(stat[0])
 	if err == nil {
 		accounts[account] = stat[0]
-	} else {
+	} else { // Critical message
 		log.Panic(account+": "+"Malformed number of messages: "+stat[0])
 	}
 
 	boxsize, err := strconv.Atoi(stat[1])
-	if err != nil {
+	if err != nil { // Critical message
 		log.Panic(account+": "+"Malformed mailbox size: "+stat[1])
 	}
 
@@ -250,7 +250,7 @@ func check(account string, filename string, quiet bool) { // I:home O:accounts I
 	}
 	for i := 1; i <= nmsg; i++ {
 		line, data, err := popConn.CmdMulti("RETR %d", i)
-		if err != nil {
+		if err != nil { // Critical message
 			log.Printf("%s: Error retrieving message %d/%d: %s", account, i, nmsg, err.Error())
 			continue
 		}
@@ -268,14 +268,14 @@ func check(account string, filename string, quiet bool) { // I:home O:accounts I
 			log.Printf("%s: Fetched message %d/%d (%s bytes)", account, i, nmsg, size)
 		}
 		err = SaveToMaildir(cfg.Maildir, data)
-		if err != nil {
+		if err != nil { // Critical message
 			log.Printf("%s: Error saving mesage %d/%d to maildir %s: %s", account, i, nmsg, cfg.Maildir, err.Error())
 			continue
 		}
 
 		if !cfg.Keep {
 			line, err = popConn.Cmd("DELE %d", i)
-			if err != nil {
+			if err != nil { // Critical message
 				log.Printf("%s: Error deleting mesage %d/%d from the server: %s", account, i, nmsg, err.Error())
 			} else if !quiet {
 				log.Printf("%s: Deleted message %d/%d from the server", account, i, nmsg)
