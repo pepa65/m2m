@@ -20,7 +20,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const version = "1.10.4"
+const version = "1.10.5"
 
 type Config struct {
 	Username    string
@@ -76,7 +76,9 @@ func usage(msg string) { // I:self,version
 }
 
 func (w writer) Write(bytes []byte) (int, error) {
-  return fmt.Fprint(os.Stderr, time.Now().String()[:23] + " " + string(bytes))
+	s := fmt.Sprint(time.Now().String()[:23]+" "+string(bytes))
+	fmt.Fprint(os.Stderr, s)
+	return len(s), nil
 }
 
 func main() { // I:accounts O:self,home IO:wg
@@ -198,6 +200,7 @@ func check(account string, filename string, quiet bool) { // I:home O:accounts I
 		log.Panic(err)
 	}
 
+	defer conn.Close()
 	if cfg.TLS {
 		tlsConfig := &tls.Config{ServerName: cfg.TLSDomain}
 		tlsConn := tls.Client(conn, tlsConfig)
@@ -260,6 +263,7 @@ func check(account string, filename string, quiet bool) { // I:home O:accounts I
 	if !quiet {
 		log.Printf("Messages: %d Total %d bytes", nmsg, boxsize)
 	}
+	delerrs := 0
 	for i := 1; i <= nmsg; i++ {
 		line, data, err := popConn.CmdMulti("RETR %d", i)
 		if err != nil { // Critical message
@@ -288,15 +292,17 @@ func check(account string, filename string, quiet bool) { // I:home O:accounts I
 		if !cfg.Keep {
 			line, err = popConn.Cmd("DELE %d", i)
 			if err != nil { // Critical message
+				delerrs += 1
 				log.Printf("Error deleting mesage %d/%d from the server: %s", i, nmsg, err.Error())
-			} else if !quiet {
-				log.Printf("Deleted message %d/%d from the server", i, nmsg)
 			}
 		}
 	}
-	if !quiet && nmsg > 0 && cfg.Keep {
-		log.Print("Not deleting messages from the server")
+	if !quiet && nmsg > 0 {
+		if cfg.Keep {
+			log.Print("Not deleting messages from the server")
+		} else {
+			log.Printf("Deleted %/%d messages from the server", nmsg-delerrs, nmsg)
+		}
 	}
 	popConn.Cmd("QUIT")
-	conn.Close()
 }
