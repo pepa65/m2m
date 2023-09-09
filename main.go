@@ -20,7 +20,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const version = "1.10.5"
+const version = "1.10.6"
 
 type Config struct {
 	Username    string
@@ -301,7 +301,7 @@ func check(account string, filename string, quiet bool) { // I:home O:accounts I
 		if cfg.Keep {
 			log.Print("Not deleting messages from the server")
 		} else {
-			log.Printf("Deleted %/%d messages from the server", nmsg-delerrs, nmsg)
+			log.Printf("Deleted %d/%d messages from the server", nmsg-delerrs, nmsg)
 		}
 	}
 	popConn.Cmd("QUIT")
