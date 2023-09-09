@@ -261,7 +261,7 @@ func check(account string, filename string, quiet bool) { // I:home O:accounts I
 	}
 
 	if !quiet {
-		log.Printf("Messages: %d Total %d bytes", nmsg, boxsize)
+		log.Printf("%d messages %d bytes", nmsg, boxsize)
 	}
 	delerrs := 0
 	for i := 1; i <= nmsg; i++ {
