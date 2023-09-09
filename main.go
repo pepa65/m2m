@@ -301,7 +301,7 @@ func check(account string, filename string, quiet bool) { // I:home O:accounts I
 		if cfg.Keep {
 			log.Print("Not deleting messages from the server")
 		} else {
-			log.Printf("Deleted %d/%d messages from the server", nmsg-delerrs, nmsg)
+			log.Printf("Messages deleted from the server: %d/%d", nmsg-delerrs, nmsg)
 		}
 	}
 	popConn.Cmd("QUIT")
