@@ -20,7 +20,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const version = "1.10.9"
+const version = "1.10.10"
 
 type Config struct {
 	Username    string
@@ -35,17 +35,17 @@ type Config struct {
 	Active      bool
 }
 
-type writer struct {}
+type writer struct{}
 
 var (
-	self = ""
-	home = ""
+	self     = ""
+	home     = ""
 	accounts = make(map[string]string)
-	wg sync.WaitGroup
+	wg       sync.WaitGroup
 )
 
 func usage(msg string) { // I:self,version
-	fmt.Print(self+" v"+version+` - Move from POP3 to Maildir
+	fmt.Print(self + " v" + version + ` - Move from POP3 to Maildir
 * Downloading emails from POP3 servers and moving them into Maildir folders.
 * Repo:   github.com/pepa65/m2m
 * Usage:  m2m [ -h|--help | -q|--quiet ]
@@ -76,7 +76,7 @@ func usage(msg string) { // I:self,version
 }
 
 func (w writer) Write(bytes []byte) (int, error) {
-	s := fmt.Sprint(time.Now().String()[:23]+" "+string(bytes))
+	s := fmt.Sprint(time.Now().String()[:23] + " " + string(bytes))
 	fmt.Fprint(os.Stderr, s)
 	return len(s), nil
 }
@@ -130,8 +130,8 @@ func main() { // I:accounts O:self,home IO:wg
 		mails := false
 		logline := time.Now().Format("2006-01-02_15:04:05 ")
 		for _, file := range files {
-			if n :=accounts[file]; n != "" {
-				logline += file+": "+n+" "
+			if n := accounts[file]; n != "" {
+				logline += file + ": " + n + " "
 				if n != "0" {
 					mails = true
 				}
@@ -167,18 +167,18 @@ func check(account string, filename string, quiet bool) { // I:home O:accounts I
 	cfg.Active = true
 	err = yaml.UnmarshalStrict(cfgdata, &cfg)
 	if err != nil { // Critical message
-		log.Panic("Error in config file '"+filename+"'\n"+err.Error())
+		log.Panic("Error in config file '" + filename + "'\n" + err.Error())
 	}
 
 	if !cfg.Active && !quiet {
 		log.Panic("Inactive")
 	}
 	if cfg.Username == "" { // Critical message
-		log.Panic("Missing 'username' in configfile '"+filename+"'")
+		log.Panic("Missing 'username' in configfile '" + filename + "'")
 	}
 
 	if cfg.TLSDomain == "" && cfg.TLS == true { // Critical message
-		log.Panic("Missing 'tlsdomain' in configfile '"+filename+"' while TLS required")
+		log.Panic("Missing 'tlsdomain' in configfile '" + filename + "' while TLS required")
 	}
 
 	var dialer Dialer
@@ -223,7 +223,7 @@ func check(account string, filename string, quiet bool) { // I:home O:accounts I
 	}
 
 	if !ok { // Critical message
-		log.Panic("Server error: "+msg)
+		log.Panic("Server error: " + msg)
 	}
 
 	popConn := NewPOP3Conn(conn)
@@ -245,19 +245,19 @@ func check(account string, filename string, quiet bool) { // I:home O:accounts I
 
 	stat := strings.Split(line, " ")
 	if len(stat) != 2 { // Critical message
-		log.Panic("STAT response malformed: "+line)
+		log.Panic("STAT response malformed: " + line)
 	}
 
 	nmsg, err := strconv.Atoi(stat[0])
 	if err == nil {
 		accounts[account] = stat[0]
 	} else { // Critical message
-		log.Panic("Malformed number of messages: "+stat[0])
+		log.Panic("Malformed number of messages: " + stat[0])
 	}
 
 	boxsize, err := strconv.Atoi(stat[1])
 	if err != nil { // Critical message
-		log.Panic("Malformed mailbox size: "+stat[1])
+		log.Panic("Malformed mailbox size: " + stat[1])
 	}
 
 	if !quiet {
