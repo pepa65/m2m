@@ -20,7 +20,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const version = "1.11.0"
+const version = "1.12.0"
 
 type Config struct {
 	Username    string
@@ -121,7 +121,7 @@ func main() { // I:accounts O:self,home IO:wg
 	sort.Strings(files)
 	for _, file := range files {
 		wg.Add(1)
-		go check(file, filepath.Join(cfgpath, file), quiet)
+		go check(file, cfgpath, quiet)
 	}
 	wg.Wait()
 	duration := time.Since(start).Seconds()
@@ -149,23 +149,18 @@ func unpanic() {
 	recover()
 }
 
-func check(account string, filename string, quiet bool) { // I:home O:accounts IO:wg
+func check(account string, m2mdir string, quiet bool) { // I:home O:accounts IO:wg
 	defer unpanic()
 	defer wg.Done()
-	log := log.New(new(writer), account+": ", log.Lmsgprefix)
-	file, err := os.Open(filename + "_blocked")
-	if err == nil { // Account blocked: skip
+	log := log.New(new(writer), account + ": ", log.Lmsgprefix)
+	lockfile := filepath.Join(m2mdir, "." + account + "_locked")
+	file, err := os.Open(lockfile)
+	if err == nil { // Account locked: skip
 		file.Close()
 		return
 	}
-	// Block account
-	file, err = os.OpenFile(filename + "_blocked", os.O_CREATE, 0400)
-	if err != nil {
-		log.Panic("Cannot write lock file '" + filename + "_blocked'")
-	}
-	defer os.Remove(filename + "_blocked")
-	defer file.Close()
 
+	filename := filepath.Join(m2mdir, account)
 	cfgdata, err := ioutil.ReadFile(filename)
 	if err != nil { // Critical message
 		log.Panic(err)
@@ -192,6 +187,14 @@ func check(account string, filename string, quiet bool) { // I:home O:accounts I
 	if cfg.TLSDomain == "" && cfg.TLS == true { // Critical message
 		log.Panic("Missing 'tlsdomain' in configfile '" + filename + "' while TLS required")
 	}
+
+	// Lock account before going online
+	file, err = os.OpenFile(lockfile, os.O_CREATE, 0400)
+	if err != nil {
+		log.Panic("Cannot create lock file '" + lockfile + "'")
+	}
+	defer os.Remove(lockfile)
+	defer file.Close()
 
 	var dialer Dialer
 	dialer = &net.Dialer{}
