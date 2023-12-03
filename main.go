@@ -20,7 +20,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const version = "1.10.10"
+const version = "1.11.0"
 
 type Config struct {
 	Username    string
@@ -107,7 +107,6 @@ func main() { // I:accounts O:self,home IO:wg
 	}
 
 	cfgpath := filepath.Join(home, ".m2m.conf")
-	//files, err := ioutil.ReadDir(cfgpath)
 	dir, err := os.Open(cfgpath)
 	if err != nil { // Critical message
 		log.Fatal(err)
@@ -154,6 +153,19 @@ func check(account string, filename string, quiet bool) { // I:home O:accounts I
 	defer unpanic()
 	defer wg.Done()
 	log := log.New(new(writer), account+": ", log.Lmsgprefix)
+	file, err := os.Open(filename + "_blocked")
+	if err == nil { // Account blocked: skip
+		file.Close()
+		return
+	}
+	// Block account
+	file, err = os.OpenFile(filename + "_blocked", os.O_CREATE, 0400)
+	if err != nil {
+		log.Panic("Cannot write lock file '" + filename + "_blocked'")
+	}
+	defer os.Remove(filename + "_blocked")
+	defer file.Close()
+
 	cfgdata, err := ioutil.ReadFile(filename)
 	if err != nil { // Critical message
 		log.Panic(err)
