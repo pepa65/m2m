@@ -20,7 +20,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const version = "1.12.2"
+const version = "1.13.0"
 
 type Config struct {
 	Username    string
@@ -130,7 +130,10 @@ func main() { // I:accounts O:self,home IO:wg
 		mails := false
 		logline := time.Now().Format("2006-01-02_15:04:05 ")
 		for _, file := range files {
-			if n := accounts[file]; n != "" {
+			n := accounts[file]
+			if n == "." {
+				logline += file + ": locked"
+			} else if n != "" {
 				logline += file + ": " + n + " "
 				if n != "0" {
 					mails = true
@@ -158,6 +161,7 @@ func check(account string, m2mdir string, quiet bool) { // I:home O:accounts IO:
 	file, err := os.Open(lockfile)
 	if err == nil { // Account locked: skip
 		file.Close()
+		accounts[account] = "."
 		return
 	}
 
