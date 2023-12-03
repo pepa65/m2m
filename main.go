@@ -20,7 +20,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const version = "1.13.0"
+const version = "1.14.0"
 
 type Config struct {
 	Username    string
@@ -121,8 +121,10 @@ func main() { // I:accounts O:self,home IO:wg
 	start := time.Now()
 	sort.Strings(files)
 	for _, file := range files {
-		wg.Add(1)
-		go check(file, cfgpath, quiet)
+		if file[0:1] != "." {
+			wg.Add(1)
+			go check(file, cfgpath, quiet)
+		}
 	}
 	wg.Wait()
 	duration := time.Since(start).Seconds()

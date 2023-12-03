@@ -3,7 +3,7 @@
 [![GitHub](https://img.shields.io/github/license/pepa65/m2m.svg)](LICENSE)
 # m2m - Move from POP3 to Maildir
 
-* **v1.13.0**
+* **v1.14.0**
 * License: GPLv3+
 * Just pull mails from POP3 servers (TLS can be disabled) and put them in local Maildirs.
 * Proxies and Onion entry servers are supported.
@@ -15,7 +15,7 @@
 ## Install
 * `go install github.com/pepa65/m2m@latest`
 * The directory `~/.m2m.conf` contains all the account config files which are checked concurrently.
-  The file name is taken as the account name. (See the `Example` file in the repo).
+  The file name is taken as the account name, must not start with a `.`. (See the `Example` file in the repo).
 * The (YAML) config files have the POP3 server config details and the Maildir location with parameters:
   - `active`: `true`/`false` - Account is active [default] or not
   - `username`: POP3 username [mandatory]
@@ -41,7 +41,7 @@
 
 ## Help
 ```
-m2m v1.13.0 - Move from POP3 to Maildir
+m2m v1.14.0 - Move from POP3 to Maildir
 * Downloading emails from POP3 servers and moving them into Maildir folders.
 * Repo:   github.com/pepa65/m2m
 * Usage:  m2m [ -h|--help | -q|--quiet ]
