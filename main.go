@@ -20,7 +20,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const version = "1.12.0"
+const version = "1.12.1"
 
 type Config struct {
 	Username    string
@@ -55,13 +55,14 @@ func usage(msg string) { // I:self,version
                  and any additional verbose output is logged to 'stderr'.
 * The directory '~/.m2m.conf' contains all the account config files, which
   are checked concurrently. The filename is taken as the account name.
+  Lockfiles '.ACCOUNT_locked' get placed here when an account gets checked.
 * Parameters in the configuration files:
     active: true/false  Account is active [default] or not
     username:           POP3 username [mandatory]
     password:           POP3 password [mandatory]
     tlsdomain:          Server domainname (as in its certificate) [mandatory]
     port:               Port [default: 995]
-    entryserver:        Initial IP/Domainname for the server [default: not used]
+    entryserver:        Initial server IP/Domainname [default: not used]
     proxyport:          Proxy server (server:port) [default: not used]
     tls: true/false     Use TLS [default], or not
     keep: true/false    Keep mails on POP3 server, or delete them [default]

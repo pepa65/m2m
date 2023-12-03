@@ -3,7 +3,7 @@
 [![GitHub](https://img.shields.io/github/license/pepa65/m2m.svg)](LICENSE)
 # m2m - Move from POP3 to Maildir
 
-* **v1.12.0**
+* **v1.12.1**
 * License: GPLv3+
 * Just pull mails from POP3 servers (TLS can be disabled) and put them in local Maildirs.
 * Proxies and Onion entry servers are supported.
@@ -36,12 +36,12 @@
 * Flag `-q`/`--quiet` outputs only fatal errors to `stderr`.
 * Normally, a minimal report is sent to `stdout` (nothing on no mails),
   and any additional verbose output is logged to `stderr`. Route output as desired!
-* Each account gets locked by creating a file `.ACCOUNTNAME_locked` in directory
+* Each account gets locked by creating a file `.ACCOUNT_locked` in directory
   `~/.m2m.conf` when it gets checked online.
 
 ## Help
 ```
-m2m v1.12.0 - Move from POP3 to Maildir
+m2m v1.12.1 - Move from POP3 to Maildir
 * Downloading emails from POP3 servers and moving them into Maildir folders.
 * Repo:   github.com/pepa65/m2m
 * Usage:  m2m [ -h|--help | -q|--quiet ]
@@ -51,6 +51,7 @@ m2m v1.12.0 - Move from POP3 to Maildir
                  and any additional verbose output is logged to 'stderr'.
 * The directory '~/.m2m.conf' contains all the account config files, which
   are checked concurrently. The filename is taken as the account name.
+  Lockfiles '.ACCOUNT_locked' get placed here when an account gets checked.
 * Parameters in the configuration files:
     active: true/false  Account is active [default] or not
     username:           POP3 username [mandatory]
