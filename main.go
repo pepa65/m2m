@@ -20,7 +20,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const version = "1.12.1"
+const version = "1.12.2"
 
 type Config struct {
 	Username    string
@@ -56,7 +56,7 @@ func usage(msg string) { // I:self,version
 * The directory '~/.m2m.conf' contains all the account config files, which
   are checked concurrently. The filename is taken as the account name.
   Lockfiles '.ACCOUNT_locked' get placed here when an account gets checked.
-* Parameters in the configuration files:
+* Parameter names (lowercase!) in the configuration files:
     active: true/false  Account is active [default] or not
     username:           POP3 username [mandatory]
     password:           POP3 password [mandatory]
