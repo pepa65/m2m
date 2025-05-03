@@ -20,7 +20,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const version = "1.15.6"
+const version = "1.16.0"
 
 type Config struct {
 	Username    string
@@ -324,4 +324,5 @@ func check(account string, m2mdir string, quiet bool) { // I:home O:accounts IO:
 		}
 	}
 	popConn.Cmd("QUIT")
+	conn.Close()
 }
