@@ -20,7 +20,10 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const version = "1.16.0"
+const (
+	version = "1.17.0"
+	confdir = ".m2m.conf"
+)
 
 type Config struct {
 	Username    string
@@ -48,13 +51,13 @@ func usage(msg string) { // I:self,version
 	fmt.Print(self + " v" + version + ` - Move from POP3 to Maildir
 * Downloading emails from POP3 servers and moving them into Maildir folders.
 * Repo:   github.com/pepa65/m2m
-* Usage:  m2m [ -h|--help | -q|--quiet ]
-    -h/--help:   Output this help text.
-    -q/--quiet:  Output only on critical errors (on 'stderr').
-    No flag:     A minimal report is sent to 'stdout' (nothing on no mails),
-                 and any additional verbose output is logged to 'stderr'.
-* The directory '~/.m2m.conf' contains all the account config files, which
-  are checked concurrently. The filename is taken as the account name.
+* Usage:  m2m [-s|--serial] [-q|--quiet] | [-h|--help]
+    -s/--serial:  Check the accounts in order, do not check concurrently.
+    -q/--quiet:   Output only on critical errors (on 'stderr').
+    -h/--help:    Output this help text.
+    If mails are found, a minimal report goes to 'stdout'; errors to 'stderr'.
+* The directory '~/` + confdir + `' contains all account config files, which are
+ 	checked concurrently by default (each filename is taken as the account name).
   Lockfiles '.ACCOUNT_locked' get placed here when an account gets checked.
 * Parameter names (lowercase!) in the configuration files:
     active: true/false  Account is active [default] or not
@@ -66,10 +69,10 @@ func usage(msg string) { // I:self,version
     proxyport:          Proxy server (server:port) [default: not used]
     tls: true/false     Use TLS [default], or not
     keep: true/false    Keep mails on POP3 server, or delete them [default]
-    maildir:            Path to the Maildir directory [default: '~/Maildir']
+    maildir:            Path under $HOME to Maildir [default: 'Maildir']
 `)
 
-	if msg != "" { // Critical message
+	if msg != "" { // Abort message
 		fmt.Fprintf(os.Stderr, "\n%v\n", msg)
 		os.Exit(1)
 	}
@@ -85,36 +88,39 @@ func (w writer) Write(bytes []byte) (int, error) {
 func main() { // I:accounts O:self,home IO:wg
 	selfparts := strings.Split(os.Args[0], "/")
 	self = selfparts[len(selfparts)-1]
-	if len(os.Args) > 2 { // Critical message
-		usage("Only 1 (optional) argument allowed: -h/--help / -q/--quiet")
-	}
-
-	quiet := false
-	if len(os.Args) == 2 {
-		if os.Args[1] == "-h" || os.Args[1] == "--help" {
+	quiet, serial := false, false
+	for i, arg := range os.Args {
+		if i == 0 {
+			continue
+		}
+		switch arg {
+		case "-h", "--help":
 			usage("")
-		} else if os.Args[1] == "-q" || os.Args[1] == "--quiet" {
+		case "-q", "--quiet":
 			quiet = true
-		} else { // Critical message
-			usage("The only argument allowed is: -h/--help / -q/--quiet")
+		case "-s", "--serial":
+			serial = true
+		default:
+			// Abort message
+			usage("The only arguments allowed are: -s/--serial, -h/--help and -q/--quiet")
 		}
 	}
 
 	log := log.New(new(writer), "- ", log.Lmsgprefix)
 	var err error
 	home, err = os.UserHomeDir()
-	if err != nil { // Critical message
+	if err != nil { // Abort
 		log.Fatal(err)
 	}
 
-	cfgpath := filepath.Join(home, ".m2m.conf")
+	cfgpath := filepath.Join(home, confdir)
 	dir, err := os.Open(cfgpath)
-	if err != nil { // Critical message
+	if err != nil {
 		log.Fatal(err)
 	}
 
 	files, err := dir.Readdirnames(0)
-	if err != nil { // Critical message
+	if err != nil {
 		log.Fatal(err)
 	}
 
@@ -123,7 +129,11 @@ func main() { // I:accounts O:self,home IO:wg
 	for _, file := range files {
 		if file[0:1] != "." {
 			wg.Add(1)
-			go check(file, cfgpath, quiet)
+			if serial {
+				go check(file, cfgpath, quiet)
+			} else {
+				check(file, cfgpath, quiet)
+			}
 		}
 	}
 	wg.Wait()
@@ -166,7 +176,7 @@ func check(account string, m2mdir string, quiet bool) { // I:home O:accounts IO:
 
 	filename := filepath.Join(m2mdir, account)
 	cfgdata, err := ioutil.ReadFile(filename)
-	if err != nil { // Critical message
+	if err != nil { // Abort
 		log.Panic(err)
 	}
 
@@ -177,18 +187,18 @@ func check(account string, m2mdir string, quiet bool) { // I:home O:accounts IO:
 	cfg.Maildir = filepath.Join(home, "Maildir")
 	cfg.Active = true
 	err = yaml.UnmarshalStrict(cfgdata, &cfg)
-	if err != nil { // Critical message
+	if err != nil { // Abort
 		log.Panic("Error in config file '" + filename + "'\n" + err.Error())
 	}
 
 	if !cfg.Active && !quiet {
 		log.Panic("Inactive")
 	}
-	if cfg.Username == "" { // Critical message
+	if cfg.Username == "" { // Abort
 		log.Panic("Missing 'username' in configfile '" + filename + "'")
 	}
 
-	if cfg.TLSDomain == "" && cfg.TLS == true { // Critical message
+	if cfg.TLSDomain == "" && cfg.TLS == true { // Abort
 		log.Panic("Missing 'tlsdomain' in configfile '" + filename + "' while TLS required")
 	}
 
@@ -204,7 +214,7 @@ func check(account string, m2mdir string, quiet bool) { // I:home O:accounts IO:
 	dialer = &net.Dialer{}
 	if cfg.ProxyPort != "" {
 		dialer, err = proxy.SOCKS5("tcp", cfg.ProxyPort, nil, proxy.Direct)
-		if err != nil { // Critical message
+		if err != nil { // Abort
 			log.Panic(err)
 		}
 	}
@@ -215,7 +225,7 @@ func check(account string, m2mdir string, quiet bool) { // I:home O:accounts IO:
 	} else {
 		conn, err = dialer.Dial("tcp", cfg.TLSDomain+":"+cfg.Port)
 	}
-	if err != nil { // Critical message
+	if err != nil { // Abort
 		log.Panic(err)
 	}
 
@@ -223,7 +233,7 @@ func check(account string, m2mdir string, quiet bool) { // I:home O:accounts IO:
 	if cfg.TLS {
 		tlsConfig := &tls.Config{ServerName: cfg.TLSDomain}
 		tlsConn := tls.Client(conn, tlsConfig)
-		if err != nil { // Critical message
+		if err != nil { // Abort
 			log.Panic(err)
 		}
 
@@ -232,50 +242,50 @@ func check(account string, m2mdir string, quiet bool) { // I:home O:accounts IO:
 
 	buf := make([]byte, 255)
 	n, err := conn.Read(buf)
-	if err != nil { // Critical message
+	if err != nil { // Abort
 		log.Panic(err)
 	}
 
 	ok, msg, err := ParseResponseLine(string(buf[:n]))
-	if err != nil { // Critical message
+	if err != nil { // Abort
 		log.Panic(err)
 	}
 
-	if !ok { // Critical message
+	if !ok { // Abort
 		log.Panic("Server error: " + msg)
 	}
 
 	popConn := NewPOP3Conn(conn)
 	popConn.Cmd("UTF8")
 	line, err := popConn.Cmd("USER %s", cfg.Username)
-	if err != nil { // Critical message
+	if err != nil { // Abort
 		log.Panic(err)
 	}
 
 	line, err = popConn.Cmd("PASS %s", cfg.Password)
-	if err != nil { // Critical message
+	if err != nil { // Abort
 		log.Panic(err)
 	}
 
 	line, err = popConn.Cmd("STAT")
-	if err != nil { // Critical message
+	if err != nil { // Abort
 		log.Panic(err)
 	}
 
 	stat := strings.Split(line, " ")
-	if len(stat) != 2 { // Critical message
+	if len(stat) != 2 { // Abort
 		log.Panic("STAT response malformed: " + line)
 	}
 
 	nmsg, err := strconv.Atoi(stat[0])
 	if err == nil {
 		accounts[account] = stat[0]
-	} else { // Critical message
+	} else { // Abort
 		log.Panic("Malformed number of messages: " + stat[0])
 	}
 
 	boxsize, err := strconv.Atoi(stat[1])
-	if err != nil { // Critical message
+	if err != nil { // Abort
 		log.Panic("Malformed mailbox size: " + stat[1])
 	}
 
@@ -285,7 +295,7 @@ func check(account string, m2mdir string, quiet bool) { // I:home O:accounts IO:
 	delerrs := 0
 	for i := 1; i <= nmsg; i++ {
 		line, data, err := popConn.CmdMulti("RETR %d", i)
-		if err != nil { // Critical message
+		if err != nil {
 			log.Printf("Error retrieving message %d/%d: %s", i, nmsg, err.Error())
 			continue
 		}
@@ -303,14 +313,14 @@ func check(account string, m2mdir string, quiet bool) { // I:home O:accounts IO:
 			log.Printf("Fetched message %d/%d (%s bytes)", i, nmsg, size)
 		}
 		err = SaveToMaildir(cfg.Maildir, data)
-		if err != nil { // Critical message
+		if err != nil {
 			log.Printf("Error saving mesage %d/%d to maildir %s: %s", i, nmsg, cfg.Maildir, err.Error())
 			continue
 		}
 
 		if !cfg.Keep {
 			line, err = popConn.Cmd("DELE %d", i)
-			if err != nil { // Critical message
+			if err != nil {
 				delerrs += 1
 				log.Printf("Error deleting mesage %d/%d from the server: %s", i, nmsg, err.Error())
 			}
