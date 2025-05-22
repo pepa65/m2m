@@ -3,7 +3,7 @@
 [![GitHub](https://img.shields.io/github/license/pepa65/m2m.svg)](LICENSE)
 # m2m - Move from POP3 to Maildir
 
-* **v1.17.0**
+* **v1.17.1**
 * License: GPLv3+
 * Just pull mails from POP3 servers (TLS can be disabled) and put them in local Maildirs.
 * Proxies and Onion entry servers are supported.
@@ -41,7 +41,7 @@
 
 ## Help
 ```
-m2m v1.17.0 - Move from POP3 to Maildir
+m2m v1.17.1 - Move from POP3 to Maildir
 * Downloading emails from POP3 servers and moving them into Maildir folders.
 * Repo:   github.com/pepa65/m2m
 * Usage:  m2m [-s|--serial] [-q|--quiet] | [-h|--help]
