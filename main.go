@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	version = "1.17.6"
+	version = "1.18.0"
 	confdir = ".m2m.conf"
 )
 
@@ -47,14 +47,15 @@ var (
 	wg       sync.WaitGroup
 )
 
-func usage(msg string) { // I:self,version
+func usage() { // I:self,version
 	fmt.Print(self + " v" + version + ` - Move from POP3 to Maildir
 * Downloading emails from POP3 servers and moving them into Maildir folders.
 * Repo:   github.com/pepa65/m2m
 * Usage:  m2m [-s|--serial] [-q|--quiet] | [-h|--help]
-    -s/--serial:  Check the accounts in order, do not check concurrently.
-    -q/--quiet:   Output only on critical errors (on 'stderr').
-    -h/--help:    Output this help text.
+    -s/--serial:   Check the accounts in order, do not check concurrently.
+    -q/--quiet:    Output only on critical errors (on 'stderr').
+    -h/--help:     Output this help text.
+    -V/--version:  Output the version.
     If mails are found, a minimal report goes to 'stdout'; errors to 'stderr'.
 * The directory '~/` + confdir + `' contains all account config files, which are
  	checked concurrently by default (each filename is taken as the account name).
@@ -71,12 +72,6 @@ func usage(msg string) { // I:self,version
     keep: true/false    Keep mails on POP3 server, or delete them [default]
     maildir:            Path under $HOME to Maildir [default: 'Maildir']
 `)
-
-	if msg != "" { // Abort message
-		fmt.Fprintf(os.Stderr, "\n%v\n", msg)
-		os.Exit(1)
-	}
-	os.Exit(0)
 }
 
 func (w writer) Write(bytes []byte) (int, error) {
@@ -94,15 +89,20 @@ func main() { // I:accounts O:self,home IO:wg
 			continue
 		}
 		switch arg {
+		case "-V", "--version":
+			fmt.Println(self + " v" + version)
+			os.Exit(0)
 		case "-h", "--help":
-			usage("")
+			usage()
+			os.Exit(0)
 		case "-q", "--quiet":
 			quiet = true
 		case "-s", "--serial":
 			serial = true
 		default:
-			// Abort message
-			usage("The only arguments allowed are: -s/--serial, -h/--help and -q/--quiet")
+			usage()
+			fmt.Println("\nError: the only arguments allowed are: -s/--serial, -h/--help and -q/--quiet")
+			os.Exit(1)
 		}
 	}
 
