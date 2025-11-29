@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	version = "1.18.1"
+	version = "1.18.2"
 	confdir = ".m2m.conf"
 )
 
@@ -130,9 +130,9 @@ func main() { // I:accounts O:self,home IO:wg
 		if file[0:1] != "." {
 			wg.Add(1)
 			if serial {
-				go check(file, cfgpath, quiet)
-			} else {
 				check(file, cfgpath, quiet)
+			} else {
+				go check(file, cfgpath, quiet)
 			}
 		}
 	}
