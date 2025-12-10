@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	version = "1.19.1"
+	version = "1.19.2"
 	confdir = ".m2m.conf"
 )
 
