@@ -21,8 +21,10 @@ import (
 )
 
 const (
-	version = "1.19.3"
+	version = "1.20.0"
 	confdir = ".m2m.conf"
+	lockedpostfix = "_locked"
+	timeoutsec = 200
 )
 
 type Config struct {
@@ -167,7 +169,7 @@ func check(account string, m2mdir string, quiet bool) { // I:home O:accounts IO:
 	defer unpanic()
 	defer wg.Done()
 	log := log.New(new(writer), account + ": ", log.Lmsgprefix)
-	lockfile := filepath.Join(m2mdir, "." + account + "_locked")
+	lockfile := filepath.Join(m2mdir, "." + account + lockedpostfix)
 	file, err := os.Open(lockfile)
 	if err == nil { // Account locked: skip
 		file.Close()
@@ -218,7 +220,9 @@ func check(account string, m2mdir string, quiet bool) { // I:home O:accounts IO:
 	defer file.Close()
 
 	var dialer Dialer
-	dialer = &net.Dialer{}
+	dialer = &net.Dialer{
+		Timeout: timeoutsec * time.Second,
+	}
 	if cfg.ProxyPort != "" {
 		dialer, err = proxy.SOCKS5("tcp", cfg.ProxyPort, nil, proxy.Direct)
 		if err != nil { // Abort
