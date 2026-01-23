@@ -32,5 +32,10 @@ builds:
         goarch: arm64
 checksum:
   name_template: 'checksums.txt'
-snapshot:
-  name_template: "{{ incpatch .Version }}-next"
+version_template: >
+  {{- if .IsSnapshot -}}
+    {{ incpatch .Version }}-next
+  {{- else -}}
+    {{ .Version }}
+  {{- end -}}
+
