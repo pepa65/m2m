@@ -1,10 +1,12 @@
+version: 2
+
 upx:
   - enabled: true
     compress: best
     goos: [linux]
 
 archives:
-- format: binary
+- formats: [binary]
 
 builds:
   - env:
@@ -23,6 +25,11 @@ builds:
       - 5
       - 6
       - 7
+    ignore:
+      - goos: windows
+        goarch: arm
+      - goos: windows
+        goarch: arm64
 checksum:
   name_template: 'checksums.txt'
 snapshot:
