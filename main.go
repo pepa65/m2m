@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	version = "1.22.1"
+	version = "1.22.2"
 	confdir = ".m2m.conf"
 	lockedpostfix = "_locked"
 	timeoutsec = 200
@@ -308,7 +308,7 @@ func check(account string, m2mdir string, quiet bool) { // I:home O:accounts IO:
 		if boxsize > 0 {
 			bytes = fmt.Sprintf(" %d bytes", boxsize)
 		}
-		log.Printf("%d message%s %d%s", nmsg, plural, bytes)
+		log.Printf("%d message%s %s", nmsg, plural, bytes)
 	}
 	delerrs := 0
 	for i := 1; i <= nmsg; i++ {
