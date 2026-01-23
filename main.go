@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	version = "1.20.0"
+	version = "1.21.0"
 	confdir = ".m2m.conf"
 	lockedpostfix = "_locked"
 	timeoutsec = 200
@@ -35,6 +35,7 @@ type Config struct {
 	EntryServer string
 	ProxyPort   string
 	TLS         bool
+	Timeout     string
 	Keep        bool
 	Maildir     string
 	Active      bool
@@ -71,6 +72,7 @@ func usage() { // I:self,version
     entryserver:        Initial server IP/Domainname [default: not used]
     proxyport:          Proxy server (server:port) [default: not used]
     tls: true/false     Use TLS [default], or not
+    timeout:            Poll timeout in seconds [default: ` + strconv.Itoa(timeoutsec) + `]
     keep: true/false    Keep mails on POP3 server, or delete them [default]
     maildir:            Path under $HOME to Maildir [default: 'Maildir']
 `)
@@ -162,7 +164,10 @@ func main() { // I:accounts O:self,home IO:wg
 }
 
 func unpanic() {
-	recover()
+	r := recover()
+	if r != nil {
+		log.Printf("#")
+	}
 }
 
 func check(account string, m2mdir string, quiet bool) { // I:home O:accounts IO:wg
@@ -174,14 +179,12 @@ func check(account string, m2mdir string, quiet bool) { // I:home O:accounts IO:
 	if err == nil { // Account locked: skip
 		file.Close()
 		log.Panic("Locked")
-		return
 	}
 
 	filename := filepath.Join(m2mdir, account)
 	cfgdata, err := ioutil.ReadFile(filename)
 	if err != nil { // Abort
-		log.Panic(err)
-		return
+		log.Panic("Error read account config: ", err)
 	}
 
 	var cfg Config
@@ -189,45 +192,47 @@ func check(account string, m2mdir string, quiet bool) { // I:home O:accounts IO:
 	cfg.Port = "995"
 	cfg.TLS = true
 	cfg.Maildir = filepath.Join(home, "Maildir")
+	cfg.Timeout = "200"
 	cfg.Active = true
 	err = yaml.UnmarshalStrict(cfgdata, &cfg)
 	if err != nil { // Abort
-		log.Panic("Error in config file '" + filename + "'\n" + err.Error())
-		return
+		log.Panic("Error in config file '" + filename + ": " + err.Error())
 	}
 
 	if !cfg.Active && !quiet {
 		log.Panic("Inactive")
-		return
 	}
 	if cfg.Username == "" { // Abort
 		log.Panic("Missing 'username' in configfile '" + filename + "'")
-		return
 	}
 
 	if cfg.TLSDomain == "" && cfg.TLS == true { // Abort
 		log.Panic("Missing 'tlsdomain' in configfile '" + filename + "' while TLS required")
-		return
 	}
 
 	// Lock account before going online
 	file, err = os.OpenFile(lockfile, os.O_CREATE, 0400)
 	if err != nil {
 		log.Panic("Cannot create lock file '" + lockfile + "'")
-		return
 	}
 	defer os.Remove(lockfile)
 	defer file.Close()
 
+	timeout := timeoutsec
+	if cfg.Timeout != "" {
+		timeout, err = strconv.Atoi(cfg.Timeout)
+		if err != nil || timeout <= 0 {
+			log.Panic("Invalid 'timeout' in configfile '" + filename)
+		}
+	}
 	var dialer Dialer
 	dialer = &net.Dialer{
-		Timeout: timeoutsec * time.Second,
+		Timeout: time.Duration(timeout) * time.Second,
 	}
 	if cfg.ProxyPort != "" {
 		dialer, err = proxy.SOCKS5("tcp", cfg.ProxyPort, nil, proxy.Direct)
 		if err != nil { // Abort
-			log.Panic(err)
-			return
+			log.Panic("Proxy error: ", err)
 		}
 	}
 
@@ -238,8 +243,7 @@ func check(account string, m2mdir string, quiet bool) { // I:home O:accounts IO:
 		conn, err = dialer.Dial("tcp", cfg.TLSDomain+":"+cfg.Port)
 	}
 	if err != nil { // Abort
-		log.Panic(err)
-		return
+		log.Panic("TCP connection error: ", err)
 	}
 
 	defer conn.Close()
@@ -247,8 +251,7 @@ func check(account string, m2mdir string, quiet bool) { // I:home O:accounts IO:
 		tlsConfig := &tls.Config{ServerName: cfg.TLSDomain}
 		tlsConn := tls.Client(conn, tlsConfig)
 		if err != nil { // Abort
-			log.Panic(err)
-			return
+			log.Panic("TLS connection error: ", err)
 		}
 
 		conn = tlsConn
@@ -257,45 +260,38 @@ func check(account string, m2mdir string, quiet bool) { // I:home O:accounts IO:
 	buf := make([]byte, 255)
 	n, err := conn.Read(buf)
 	if err != nil { // Abort
-		log.Panic(err)
-		return
+		log.Panic("Stream read error: ", err)
 	}
 
 	ok, msg, err := ParseResponseLine(string(buf[:n]))
 	if err != nil { // Abort
-		log.Panic(err)
-		return
+		log.Panic("Parse error: ", err)
 	}
 
 	if !ok { // Abort
 		log.Panic("Server error: " + msg)
-		return
 	}
 
 	popConn := NewPOP3Conn(conn)
 	popConn.Cmd("UTF8")
 	line, err := popConn.Cmd("USER %s", cfg.Username)
 	if err != nil { // Abort
-		log.Panic(err)
-		return
+		log.Panic("USER error: ", err)
 	}
 
 	line, err = popConn.Cmd("PASS %s", cfg.Password)
 	if err != nil { // Abort
-		log.Panic(err)
-		return
+		log.Panic("PASS error: ", err)
 	}
 
 	line, err = popConn.Cmd("STAT")
 	if err != nil { // Abort
-		log.Panic(err)
-		return
+		log.Panic("STAT error: ", err)
 	}
 
 	stat := strings.Split(line, " ")
 	if len(stat) != 2 { // Abort
 		log.Panic("STAT response malformed: " + line)
-		return
 	}
 
 	nmsg, err := strconv.Atoi(stat[0])
@@ -303,17 +299,19 @@ func check(account string, m2mdir string, quiet bool) { // I:home O:accounts IO:
 		accounts[account] = stat[0]
 	} else { // Abort
 		log.Panic("Malformed number of messages: " + stat[0])
-		return
 	}
 
 	boxsize, err := strconv.Atoi(stat[1])
 	if err != nil { // Abort
 		log.Panic("Malformed mailbox size: " + stat[1])
-		return
 	}
 
 	if !quiet {
-		log.Printf("%d messages %d bytes", nmsg, boxsize)
+		plural := ""
+		if nmsg != 1 {
+			plural = "2"
+		}
+		log.Printf("%d message$s %d bytes", nmsg, plural, boxsize)
 	}
 	delerrs := 0
 	for i := 1; i <= nmsg; i++ {
