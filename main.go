@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	version = "1.21.0"
+	version = "1.21.1"
 	confdir = ".m2m.conf"
 	lockedpostfix = "_locked"
 	timeoutsec = 200
@@ -62,7 +62,7 @@ func usage() { // I:self,version
     If mails are found, a minimal report goes to 'stdout'; errors to 'stderr'.
 * The directory '~/` + confdir + `' contains all account config files, which are
  	checked concurrently by default (each filename is taken as the account name).
-  Lockfiles '.ACCOUNT_locked' get placed here when an account gets checked.
+  Lockfiles '.ACCOUNT` + lockedpostfix + `' get placed here when an account gets checked.
 * Parameter names (lowercase!) in the configuration files:
     active: true/false  Account is active [default] or not
     username:           POP3 username [mandatory]
@@ -163,15 +163,8 @@ func main() { // I:accounts O:self,home IO:wg
 	}
 }
 
-func unpanic() {
-	r := recover()
-	if r != nil {
-		log.Printf("#")
-	}
-}
-
 func check(account string, m2mdir string, quiet bool) { // I:home O:accounts IO:wg
-	defer unpanic()
+	defer recover()
 	defer wg.Done()
 	log := log.New(new(writer), account + ": ", log.Lmsgprefix)
 	lockfile := filepath.Join(m2mdir, "." + account + lockedpostfix)

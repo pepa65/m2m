@@ -4,7 +4,7 @@
 <img src="https://raw.githubusercontent.com/pepa65/m2m/master/m2m.png" width="96" alt="m2m icon" align="right">
 # m2m - Move from POP3 to Maildir
 
-* **v1.21.0**
+* **v1.21.1**
 * License: GPLv3+
 * Just pull mails from POP3 servers (TLS can be disabled) and put them in local Maildirs.
 * Proxies and Onion entry servers are supported.
@@ -53,6 +53,7 @@ sudo mv m2m* /usr/local/bin/
   - `entryserver`: Initial IP/Domainname for the server [default: not used]
   - `proxyport`: Proxy server (`server:port`) [default: empty, not used]
   - `tls`: `true`/`false` - Use TLS [default] or not
+  - `timeout`: Poll timeout in seconds [default: `200`]
   - `keep`: `true`/`false` - Keep mails on the POP3 server, or delete them [default]
   - `maildir`: Path under $HOME to Maildir [default: `Maildir`]
   - Default options are taken when the parameter is not specified.
@@ -69,7 +70,7 @@ sudo mv m2m* /usr/local/bin/
 
 ## Help
 ```
-m2m v1.21.0 - Move from POP3 to Maildir
+m2m v1.21.1 - Move from POP3 to Maildir
 * Downloading emails from POP3 servers and moving them into Maildir folders.
 * Repo:   github.com/pepa65/m2m
 * Usage:  m2m [-s|--serial] [-q|--quiet] | [-h|--help]
@@ -90,6 +91,7 @@ m2m v1.21.0 - Move from POP3 to Maildir
     entryserver:        Initial server IP/Domainname [default: not used]
     proxyport:          Proxy server (server:port) [default: not used]
     tls: true/false     Use TLS [default], or not
+    timeout:            Poll timeout in seconds [default: 200]
     keep: true/false    Keep mails on POP3 server, or delete them [default]
     maildir:            Path under $HOME to Maildir [default: 'Maildir']
 ```
