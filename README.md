@@ -4,7 +4,7 @@
 <img src="https://raw.githubusercontent.com/pepa65/m2m/master/m2m.png" width="96" alt="m2m icon" align="right">
 # m2m - Move from POP3 to Maildir
 
-* **v1.22.0**
+* **v1.22.1**
 * License: GPLv3+
 * Just pull mails from POP3 servers (TLS can be disabled) and put them in local Maildirs.
 * Proxies and Onion entry servers are supported.
@@ -70,7 +70,7 @@ sudo mv m2m* /usr/local/bin/
 
 ## Help
 ```
-m2m v1.22.0 - Move from POP3 to Maildir
+m2m v1.22.1 - Move from POP3 to Maildir
 * Downloading emails from POP3 servers and moving them into Maildir folders.
 * Repo:   github.com/pepa65/m2m
 * Usage:  m2m [-s|--serial] [-q|--quiet] | [-h|--help]

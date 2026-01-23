@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	version = "1.22.0"
+	version = "1.22.1"
 	confdir = ".m2m.conf"
 	lockedpostfix = "_locked"
 	timeoutsec = 200
