@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	version = "1.22.2"
+	version = "1.22.3"
 	confdir = ".m2m.conf"
 	lockedpostfix = "_locked"
 	timeoutsec = 200
@@ -163,8 +163,12 @@ func main() { // I:accounts O:self,home IO:wg
 	}
 }
 
+func unpanic() {
+	recover()
+}
+
 func check(account string, m2mdir string, quiet bool) { // I:home O:accounts IO:wg
-	defer recover()
+	defer unpanic()
 	defer wg.Done()
 	log := log.New(new(writer), account + ": ", log.Lmsgprefix)
 	lockfile := filepath.Join(m2mdir, "." + account + lockedpostfix)
