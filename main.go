@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	version = "1.24.2"
+	version = "1.24.3"
 	confdir = ".m2m.conf"
 	deftimeoutsec = 200
 )
@@ -72,7 +72,7 @@ func usage() { // I:self,version
     tls: true/false     Use TLS [default], or not
     timeout:            Poll timeout in seconds [default: ` + strconv.Itoa(deftimeoutsec) + `]
     keep: true/false    Keep mails on POP3 server, or delete them [default]
-    maildir:            Path under $HOME to Maildir [default: 'Maildir']
+    maildir:            Path to Maildir [default: '~/Maildir']
 `)
 }
 
