@@ -46,7 +46,7 @@ func (pc *POP3Conn) Cmd(format string, args ...interface{}) (string, error) {
 	defer c.EndResponse(id)
 	line, err := c.ReadLine()
 	if err != nil {
-		return "", nil
+		return "", err
 	}
 
 	ok, rmsg, err := ParseResponseLine(line)

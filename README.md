@@ -65,8 +65,10 @@ sudo mv m2m* /usr/local/bin/
   and any additional verbose output is logged to `stderr`. Route this output as desired!
 * Flag `-q`/`--quiet` outputs only fatal errors to `stderr`.
 * Flag `-h`/`--help` outputs just a help text.
-* While running, each account gets locked by creating a file `.ACCOUNT_locked` in directory
-  `~/.m2m.conf` when it gets checked online.
+* While running, each account gets locked with LOCK_EX Flock on
+  the account file `~/.m2m.conf/ACCOUNT` when it gets checked online.
+* The `-s`/`--serial` flag can be used if you want to process in strict lexical order
+  instead of concurrently.
 
 ## Help
 ```
@@ -80,8 +82,7 @@ m2m v1.22.4 - Move from POP3 to Maildir
     -V/--version:  Output the version.
     If mails are found, a minimal report goes to 'stdout'; errors to 'stderr'.
 * The directory '~/.m2m.conf' contains all account config files, which are
-        checked concurrently by default (each filename is taken as the account name).
-  Lockfiles '.ACCOUNT_locked' get placed here when an account gets checked.
+  checked concurrently by default (each filename is taken as the account name).
 * Parameter names (lowercase!) in the configuration files:
     active: true/false  Account is active [default] or not
     username:           POP3 username [mandatory]

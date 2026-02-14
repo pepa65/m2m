@@ -5,7 +5,7 @@ package main
 import (
 	"crypto/tls"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net"
 	"os"
@@ -17,14 +17,14 @@ import (
 	"time"
 
 	"golang.org/x/net/proxy"
+	"golang.org/x/sys/unix"
 	"gopkg.in/yaml.v2"
 )
 
 const (
 	version = "1.22.4"
 	confdir = ".m2m.conf"
-	lockedpostfix = "_locked"
-	timeoutsec = 200
+	deftimeoutsec = 200
 )
 
 type Config struct {
@@ -62,7 +62,6 @@ func usage() { // I:self,version
     If mails are found, a minimal report goes to 'stdout'; errors to 'stderr'.
 * The directory '~/` + confdir + `' contains all account config files, which are
  	checked concurrently by default (each filename is taken as the account name).
-  Lockfiles '.ACCOUNT` + lockedpostfix + `' get placed here when an account gets checked.
 * Parameter names (lowercase!) in the configuration files:
     active: true/false  Account is active [default] or not
     username:           POP3 username [mandatory]
@@ -72,7 +71,7 @@ func usage() { // I:self,version
     entryserver:        Initial server IP/Domainname [default: not used]
     proxyport:          Proxy server (server:port) [default: not used]
     tls: true/false     Use TLS [default], or not
-    timeout:            Poll timeout in seconds [default: ` + strconv.Itoa(timeoutsec) + `]
+    timeout:            Poll timeout in seconds [default: ` + strconv.Itoa(deftimeoutsec) + `]
     keep: true/false    Keep mails on POP3 server, or delete them [default]
     maildir:            Path under $HOME to Maildir [default: 'Maildir']
 `)
@@ -117,8 +116,8 @@ func main() { // I:accounts O:self,home IO:wg
 		log.Fatal(err)
 	}
 
-	cfgpath := filepath.Join(home, confdir)
-	dir, err := os.Open(cfgpath)
+	cfgdir := filepath.Join(home, confdir)
+	dir, err := os.Open(cfgdir)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -134,9 +133,9 @@ func main() { // I:accounts O:self,home IO:wg
 		if file[0:1] != "." {
 			wg.Add(1)
 			if serial {
-				check(file, cfgpath, quiet)
+				check(file, cfgdir, quiet)
 			} else {
-				go check(file, cfgpath, quiet)
+				go check(file, cfgdir, quiet)
 			}
 		}
 	}
@@ -170,18 +169,23 @@ func unpanic() {
 func check(account string, m2mdir string, quiet bool) { // I:home O:accounts IO:wg
 	defer unpanic()
 	defer wg.Done()
-	log := log.New(new(writer), account + ": ", log.Lmsgprefix)
-	lockfile := filepath.Join(m2mdir, "." + account + lockedpostfix)
-	file, err := os.Open(lockfile)
-	if err == nil { // Account locked: skip
-		file.Close()
+
+	cfgpath := filepath.Join(m2mdir, account)
+	cfgfile, err := os.Open(cfgpath)
+	if err != nil { // Abort
+		log.Panic("Error accessing config of " + account + ": ", err)
+	}
+
+	defer cfgfile.Close()
+	// Trying to lock, bail when locked already
+	err = unix.Flock(int(cfgfile.Fd()), unix.LOCK_EX)
+	if err != nil {
 		log.Panic("Locked")
 	}
 
-	filename := filepath.Join(m2mdir, account)
-	cfgdata, err := ioutil.ReadFile(filename)
+	cfgdata, err := io.ReadAll(cfgfile)
 	if err != nil { // Abort
-		log.Panic("Error read account config: ", err)
+		log.Panic("Error reading config of" + account + ": ", err)
 	}
 
 	var cfg Config
@@ -189,42 +193,34 @@ func check(account string, m2mdir string, quiet bool) { // I:home O:accounts IO:
 	cfg.Port = "995"
 	cfg.TLS = true
 	cfg.Maildir = filepath.Join(home, "Maildir")
-	cfg.Timeout = "200"
+	cfg.Timeout = strconv.Itoa(deftimeoutsec)
 	cfg.Active = true
 	err = yaml.UnmarshalStrict(cfgdata, &cfg)
 	if err != nil { // Abort
-		log.Panic("Error in config file '" + filename + ": " + err.Error())
+		log.Panic("Error in config file '" + cfgpath + ": " + err.Error())
 	}
 
 	if !cfg.Active && !quiet {
 		log.Panic("Inactive")
 	}
 	if cfg.Username == "" { // Abort
-		log.Panic("Missing 'username' in configfile '" + filename + "'")
+		log.Panic("Missing 'username' in configfile '" + cfgpath + "'")
 	}
 
 	if cfg.TLSDomain == "" && cfg.TLS == true { // Abort
-		log.Panic("Missing 'tlsdomain' in configfile '" + filename + "' while TLS required")
+		log.Panic("Missing 'tlsdomain' in configfile '" + cfgpath + "' while TLS required")
 	}
 
-	// Lock account before going online
-	file, err = os.OpenFile(lockfile, os.O_CREATE, 0400)
-	if err != nil {
-		log.Panic("Cannot create lock file '" + lockfile + "'")
-	}
-	defer os.Remove(lockfile)
-	defer file.Close()
-
-	timeout := timeoutsec
+	timeoutsec := deftimeoutsec
 	if cfg.Timeout != "" {
-		timeout, err = strconv.Atoi(cfg.Timeout)
-		if err != nil || timeout <= 0 {
-			log.Panic("Invalid 'timeout' in configfile '" + filename)
+		timeoutsec, err = strconv.Atoi(cfg.Timeout)
+		if err != nil || timeoutsec <= 0 {
+			log.Panic("Invalid 'timeout' in configfile '" + cfgpath)
 		}
 	}
 	var dialer Dialer
 	dialer = &net.Dialer{
-		Timeout: time.Duration(timeout) * time.Second,
+		Timeout: time.Duration(timeoutsec) * time.Second,
 	}
 	if cfg.ProxyPort != "" {
 		dialer, err = proxy.SOCKS5("tcp", cfg.ProxyPort, nil, proxy.Direct)
