@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	version = "1.24.0"
+	version = "1.24.1"
 	confdir = ".m2m.conf"
 	deftimeoutsec = 200
 )
@@ -168,7 +168,7 @@ func unpanic() {
 func check(account string, m2mdir string, quiet bool) { // I:home O:accounts IO:wg
 	defer unpanic()
 	defer wg.Done()
-
+	log := log.New(new(writer), account + ": ", log.Lmsgprefix)
 	cfgpath := filepath.Join(m2mdir, account)
 	// Trying to get an exclusive lock
 	lock := flock.New(cfgpath)
