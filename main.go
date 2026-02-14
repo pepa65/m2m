@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	version = "1.23.0"
+	version = "1.23.1"
 	confdir = ".m2m.conf"
 	deftimeoutsec = 200
 )
@@ -104,7 +104,7 @@ func main() { // I:accounts O:self,home IO:wg
 			serial = true
 		default:
 			usage()
-			fmt.Println("\nError: the only arguments allowed are: -s/--serial, -h/--help and -q/--quiet")
+			fmt.Println("\nError: the only arguments allowed are:\n  -s/--serial, -h/--help, -V/--version and -q/--quiet")
 			os.Exit(1)
 		}
 	}

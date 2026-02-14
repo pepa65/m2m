@@ -7,6 +7,7 @@ building:
   stage: build
   script:
     - go get -u github.com/pepa65/m2m
+    - go mod tidy
     - CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w"
     - CGO_ENABLED=0 GOOS=linux GOARCH=arm go build -ldflags="-s -w" -o m2m_pi
     - CGO_ENABLED=0 GOOS=freebsd GOARCH=amd64 go build -ldflags="-s -w" -o m2m_freebsd
