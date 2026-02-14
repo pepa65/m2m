@@ -5,7 +5,6 @@ package main
 import (
 	"crypto/tls"
 	"fmt"
-	"io"
 	"log"
 	"net"
 	"os"
@@ -16,13 +15,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gofrs/flock"
 	"golang.org/x/net/proxy"
-	"golang.org/x/sys/unix"
 	"gopkg.in/yaml.v2"
 )
 
 const (
-	version = "1.23.1"
+	version = "1.24.0"
 	confdir = ".m2m.conf"
 	deftimeoutsec = 200
 )
@@ -171,21 +170,22 @@ func check(account string, m2mdir string, quiet bool) { // I:home O:accounts IO:
 	defer wg.Done()
 
 	cfgpath := filepath.Join(m2mdir, account)
-	cfgfile, err := os.Open(cfgpath)
-	if err != nil { // Abort
-		log.Panic("Error accessing config of " + account + ": ", err)
+	// Trying to get an exclusive lock
+	lock := flock.New(cfgpath)
+	trylock, err := lock.TryLock()
+	if err != nil {
+		log.Panic("Error trying to lock on " + account + ": ", err)
 	}
 
-	defer cfgfile.Close()
-	// Trying to lock, bail when locked already
-	err = unix.Flock(int(cfgfile.Fd()), unix.LOCK_EX)
-	if err != nil {
+	// Bail when locked already
+	if !trylock {
 		log.Panic("Locked")
 	}
 
-	cfgdata, err := io.ReadAll(cfgfile)
+	defer lock.Unlock()
+	cfgdata, err := os.ReadFile(cfgpath)
 	if err != nil { // Abort
-		log.Panic("Error reading config of" + account + ": ", err)
+		log.Panic("Error reading config of " + account + ": ", err)
 	}
 
 	var cfg Config
