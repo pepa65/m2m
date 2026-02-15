@@ -21,8 +21,8 @@ import (
 )
 
 const (
-	version = "1.24.3"
-	confdir = ".m2m.conf"
+	version       = "1.24.4"
+	confdir       = ".m2m.conf"
 	deftimeoutsec = 200
 )
 
@@ -168,13 +168,13 @@ func unpanic() {
 func check(account string, m2mdir string, quiet bool) { // I:home O:accounts IO:wg
 	defer unpanic()
 	defer wg.Done()
-	log := log.New(new(writer), account + ": ", log.Lmsgprefix)
+	log := log.New(new(writer), account+": ", log.Lmsgprefix)
 	cfgpath := filepath.Join(m2mdir, account)
 	// Trying to get an exclusive lock
 	lock := flock.New(cfgpath)
 	trylock, err := lock.TryLock()
 	if err != nil {
-		log.Panic("Error trying to lock on " + account + ": ", err)
+		log.Panic("Error trying to lock on "+account+": ", err)
 	}
 
 	// Bail when locked already
@@ -185,7 +185,7 @@ func check(account string, m2mdir string, quiet bool) { // I:home O:accounts IO:
 	defer lock.Unlock()
 	cfgdata, err := os.ReadFile(cfgpath)
 	if err != nil { // Abort
-		log.Panic("Error reading config of " + account + ": ", err)
+		log.Panic("Error reading config of "+account+": ", err)
 	}
 
 	var cfg Config
@@ -267,17 +267,17 @@ func check(account string, m2mdir string, quiet bool) { // I:home O:accounts IO:
 
 	popConn := NewPOP3Conn(conn)
 	popConn.Cmd("UTF8")
-	line, err := popConn.Cmd("USER %s", cfg.Username)
+	_, err = popConn.Cmd("USER %s", cfg.Username)
 	if err != nil { // Abort
 		log.Panic("USER error: ", err)
 	}
 
-	line, err = popConn.Cmd("PASS %s", cfg.Password)
+	_, err = popConn.Cmd("PASS %s", cfg.Password)
 	if err != nil { // Abort
 		log.Panic("PASS error: ", err)
 	}
 
-	line, err = popConn.Cmd("STAT")
+	line, err := popConn.Cmd("STAT")
 	if err != nil { // Abort
 		log.Panic("STAT error: ", err)
 	}
@@ -337,7 +337,7 @@ func check(account string, m2mdir string, quiet bool) { // I:home O:accounts IO:
 		}
 
 		if !cfg.Keep {
-			line, err = popConn.Cmd("DELE %d", i)
+			_, err = popConn.Cmd("DELE %d", i)
 			if err != nil {
 				delerrs += 1
 				log.Printf("Error deleting mesage %d/%d from the server: %s", i, nmsg, err.Error())
@@ -351,6 +351,10 @@ func check(account string, m2mdir string, quiet bool) { // I:home O:accounts IO:
 			log.Printf("Messages deleted from the server: %d/%d", nmsg-delerrs, nmsg)
 		}
 	}
-	popConn.Cmd("QUIT")
+	line, err = popConn.Cmd("QUIT")
+	log.Printf("QUIT: %s", line)
+	if err != nil {
+		log.Printf("Error finalizing the delete of all messages: %s", err.Error())
+	}
 	conn.Close()
 }

@@ -4,7 +4,7 @@
 <img src="https://raw.githubusercontent.com/pepa65/m2m/master/m2m.png" width="96" alt="m2m icon" align="right">
 # m2m - Move from POP3 to Maildir
 
-* **v1.24.3**
+* **v1.24.4**
 * License: GPLv3+
 * Just pull mails from POP3 servers (TLS can be disabled) and put them in local Maildirs.
 * Proxies and Onion entry servers are supported.
@@ -16,13 +16,13 @@
 ## Install
 ```
 # Download (replace BINARY by: m2m, m2m_pi, m2m_osx, m2m_freebsd or m2m.exe)
-wget -O BINARY https://gitlab.com/pepa65/mailer/-/jobs/artifacts/master/raw/BINARY?job=building
+wget -O BINARY https://gitlab.com/pepa65/m2m/-/jobs/artifacts/master/raw/BINARY?job=building
 
 # Go install (if Golang is installed properly)
 go install github.com/pepa65/m2m@latest
 
 # Go clone/install (if Golang is installed properly)
-git clone https://github.com/pepa65/mailer; cd mailer; go install
+git clone https://github.com/pepa65/m2m; cd m2m; go install
 
 # Smaller binaries
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w"
@@ -72,7 +72,7 @@ sudo mv m2m* /usr/local/bin/
 
 ## Help
 ```
-m2m v1.24.3 - Move from POP3 to Maildir
+m2m v1.24.4 - Move from POP3 to Maildir
 * Downloading emails from POP3 servers and moving them into Maildir folders.
 * Repo:   github.com/pepa65/m2m
 * Usage:  m2m [-s|--serial] [-q|--quiet] | [-h|--help]
