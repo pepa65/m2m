@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	version       = "1.24.5"
+	version       = "1.25.0"
 	confdir       = ".m2m.conf"
 	deftimeoutsec = 200
 )
@@ -200,9 +200,13 @@ func check(account string, m2mdir string, quiet bool) { // I:home O:accounts IO:
 		log.Panic("Error in config file '" + cfgpath + ": " + err.Error())
 	}
 
-	if !cfg.Active && !quiet {
-		log.Panic("Inactive")
+	if !cfg.Active {
+		if !quiet {
+			log.Println("Inactive")
+		}
+		return
 	}
+
 	if cfg.Username == "" { // Abort
 		log.Panic("Missing 'username' in configfile '" + cfgpath + "'")
 	}
@@ -219,9 +223,7 @@ func check(account string, m2mdir string, quiet bool) { // I:home O:accounts IO:
 		}
 	}
 	var dialer Dialer
-	dialer = &net.Dialer{
-		Timeout: time.Duration(timeoutsec) * time.Second,
-	}
+	dialer = &net.Dialer{}
 	if cfg.ProxyPort != "" {
 		dialer, err = proxy.SOCKS5("tcp", cfg.ProxyPort, nil, proxy.Direct)
 		if err != nil { // Abort
@@ -239,6 +241,7 @@ func check(account string, m2mdir string, quiet bool) { // I:home O:accounts IO:
 		log.Panic("TCP connection error: ", err)
 	}
 
+	conn.SetDeadline(time.Now().Add(time.Duration(timeoutsec) * time.Second))
 	defer conn.Close()
 	if cfg.TLS {
 		tlsConfig := &tls.Config{ServerName: cfg.TLSDomain}
@@ -246,7 +249,6 @@ func check(account string, m2mdir string, quiet bool) { // I:home O:accounts IO:
 		if err != nil { // Abort
 			log.Panic("TLS connection error: ", err)
 		}
-
 		conn = tlsConn
 	}
 
@@ -314,8 +316,7 @@ func check(account string, m2mdir string, quiet bool) { // I:home O:accounts IO:
 	for i := 1; i <= nmsg; i++ {
 		line, data, err := popConn.CmdMulti("RETR %d", i)
 		if err != nil {
-			log.Printf("Error retrieving message %d/%d: %s", i, nmsg, err.Error())
-			continue
+			log.Panicf("Error retrieving message %d/%d: %s", i, nmsg, err.Error())
 		}
 
 		size, _, ok := strings.Cut(line, " ")
@@ -331,14 +332,14 @@ func check(account string, m2mdir string, quiet bool) { // I:home O:accounts IO:
 			log.Printf("Fetched message %d/%d (%s bytes)", i, nmsg, size)
 		}
 		err = SaveToMaildir(cfg.Maildir, data)
-		if err != nil {
+		if err != nil && !quiet {
 			log.Printf("Error saving mesage %d/%d to maildir %s: %s", i, nmsg, cfg.Maildir, err.Error())
 			continue
 		}
 
 		if !cfg.Keep {
 			_, err = popConn.Cmd("DELE %d", i)
-			if err != nil {
+			if err != nil && !quiet {
 				delerrs += 1
 				log.Printf("Error deleting mesage %d/%d from the server: %s", i, nmsg, err.Error())
 			}
@@ -352,9 +353,10 @@ func check(account string, m2mdir string, quiet bool) { // I:home O:accounts IO:
 		}
 	}
 	line, err = popConn.Cmd("QUIT")
-	log.Printf("QUIT: %s", line)
-	if err != nil {
+	if err != nil && !quiet {
 		log.Printf("Error finalizing the delete of all messages: %s", err.Error())
 	}
-	conn.Close()
+	//if !quiet {
+	//	log.Printf("QUIT: %s", line)
+	//}
 }
