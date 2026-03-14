@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	version       = "1.25.0"
+	version       = "1.25.1"
 	confdir       = ".m2m.conf"
 	deftimeoutsec = 200
 )
@@ -267,19 +267,19 @@ func check(account string, m2mdir string, quiet bool) { // I:home O:accounts IO:
 		log.Panic("Server error: " + msg)
 	}
 
-	popConn := NewPOP3Conn(conn)
-	popConn.Cmd("UTF8")
-	_, err = popConn.Cmd("USER %s", cfg.Username)
+	pop3 := NewPOP3Conn(conn)
+	pop3.Cmd("UTF8")
+	_, err = pop3.Cmd("USER %s", cfg.Username)
 	if err != nil { // Abort
 		log.Panic("USER error: ", err)
 	}
 
-	_, err = popConn.Cmd("PASS %s", cfg.Password)
+	_, err = pop3.Cmd("PASS %s", cfg.Password)
 	if err != nil { // Abort
 		log.Panic("PASS error: ", err)
 	}
 
-	line, err := popConn.Cmd("STAT")
+	line, err := pop3.Cmd("STAT")
 	if err != nil { // Abort
 		log.Panic("STAT error: ", err)
 	}
@@ -314,7 +314,7 @@ func check(account string, m2mdir string, quiet bool) { // I:home O:accounts IO:
 	}
 	delerrs := 0
 	for i := 1; i <= nmsg; i++ {
-		line, data, err := popConn.CmdMulti("RETR %d", i)
+		line, data, err := pop3.CmdMulti("RETR %d", i)
 		if err != nil {
 			log.Panicf("Error retrieving message %d/%d: %s", i, nmsg, err.Error())
 		}
@@ -338,7 +338,7 @@ func check(account string, m2mdir string, quiet bool) { // I:home O:accounts IO:
 		}
 
 		if !cfg.Keep {
-			_, err = popConn.Cmd("DELE %d", i)
+			_, err = pop3.Cmd("DELE %d", i)
 			if err != nil && !quiet {
 				delerrs += 1
 				log.Printf("Error deleting mesage %d/%d from the server: %s", i, nmsg, err.Error())
@@ -352,7 +352,7 @@ func check(account string, m2mdir string, quiet bool) { // I:home O:accounts IO:
 			log.Printf("Messages deleted from the server: %d/%d", nmsg-delerrs, nmsg)
 		}
 	}
-	line, err = popConn.Cmd("QUIT")
+	line, err = pop3.Cmd("QUIT")
 	if err != nil && !quiet {
 		log.Printf("Error finalizing the delete of all messages: %s", err.Error())
 	}
