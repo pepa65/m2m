@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	version       = "1.25.4"
+	version       = "1.25.5"
 	confdir       = ".m2m.conf"
 	deftimeoutsec = 200
 )
