@@ -1,10 +1,11 @@
+## All commented-out entries have a non-default value
 #active: false
 username: my@ma.il
 password: notlongenough
 tlsdomain: pop.up.net
+#tls: false
 #entryserver: fferfergrgrsehs.onion
 #port: 110
 #proxyport: 127.0.0.1:9050
-#tls: false
 #keep: true
 #maildir: /data/Maildir

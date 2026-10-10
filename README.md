@@ -1,4 +1,3 @@
-[![Go Report Card](https://goreportcard.com/badge/github.com/pepa65/m2m)](https://goreportcard.com/report/github.com/pepa65/m2m)
 [![GoDoc](https://godoc.org/github.com/pepa65/m2m?status.svg)](https://godoc.org/github.com/pepa65/m2m)
 [![GitHub](https://img.shields.io/github/license/pepa65/m2m.svg)](LICENSE)
 <img src="https://raw.githubusercontent.com/pepa65/m2m/master/m2m.png" width="96" alt="m2m icon" align="right">
