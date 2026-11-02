@@ -4,7 +4,7 @@ go 1.27.1
 
 require (
 	github.com/gofrs/flock v0.13.1
-	golang.org/x/net v0.61.0
+	golang.org/x/net v0.62.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 
